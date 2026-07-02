@@ -1,7 +1,7 @@
 pub(crate) fn find_executable(cmd: &str) -> Option<std::path::PathBuf> {
     match which::which(cmd) {
         Ok(path) => {
-            if (is_executable(&path)) {
+            if is_executable(&path) {
                 return Some(path);
             }
             return None;

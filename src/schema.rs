@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "kind")]
-pub(crate) enum ArgvKind {
+pub enum ArgvKind {
     Select {
         options: Option<Vec<String>>,
         allow_custom: Option<bool>,
@@ -34,24 +34,31 @@ pub(crate) enum ArgvKind {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub(crate) struct Argv {
-    name: String,
+pub struct Argv {
+    pub(crate) name: String,
     #[serde(flatten)]
-    kind: ArgvKind,
-    required: Option<bool>,
-    repeatable: Option<bool>,
+    pub(crate) kind: ArgvKind,
+    pub(crate) required: Option<bool>,
+    pub(crate) repeatable: Option<bool>,
 
     #[serde(alias = "desc")]
-    description: Option<String>,
+    pub(crate) description: Option<String>,
 
-    conflicts_with: Option<Vec<String>>,
-    depends_on: Option<Vec<String>>,
+    pub(crate) conflicts_with: Option<Vec<String>>,
+    pub(crate) depends_on: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub(crate) struct Command {
-    exe: String,
-    description: Option<String>,
-    args: Option<Vec<Argv>>,
-    subs: Option<HashMap<String, Command>>,
+pub struct Command {
+    pub(crate) exe: String,
+    pub(crate) description: Option<String>,
+    pub(crate) args: Option<Vec<Argv>>,
+    pub(crate) subs: Option<HashMap<String, Command>>,
+}
+
+impl Command {
+    pub fn is_empty(&self) -> bool {
+        return (self.args.is_none() || self.args.as_ref().unwrap().is_empty())
+            && (self.subs.is_none() || self.subs.as_ref().unwrap().is_empty());
+    }
 }

@@ -11,4 +11,7 @@ pub(crate) struct Entry {
 
     #[arg(long)]
     pub dryrun: Option<bool>,
+
+    #[cfg(debug_assertions)]
+    pub log: Option<String>,
 }
