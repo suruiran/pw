@@ -1,0 +1,346 @@
+{
+    "exe": "docker",
+    "description": "Docker container management CLI",
+    "args": [
+        {
+            "name": "--config",
+            "description": "Location of client config files",
+            "kind": "FilePath",
+            "globs": [
+                "*"
+            ],
+            "dir_only": true
+        },
+        {
+            "name": "--context",
+            "description": "Name of the context to use",
+            "kind": "Str"
+        },
+        {
+            "name": "--debug",
+            "description": "Enable debug mode",
+            "kind": "Flag"
+        },
+        {
+            "name": "--host",
+            "description": "Daemon socket to connect to",
+            "kind": "Str",
+            "repeatable": true
+        },
+        {
+            "name": "--log-level",
+            "description": "Set logging level",
+            "kind": "Select",
+            "options": [
+                "trace",
+                "debug",
+                "info",
+                "warn",
+                "error",
+                "fatal"
+            ],
+            "allow_custom": false
+        },
+        {
+            "name": "--tls",
+            "description": "Use TLS",
+            "kind": "Flag"
+        },
+        {
+            "name": "--tlscacert",
+            "description": "Trust certs signed only by this CA",
+            "kind": "FilePath",
+            "globs": [
+                "*.pem",
+                "*.crt"
+            ],
+            "dir_only": false,
+            "depends_on": [
+                "--tls"
+            ]
+        },
+        {
+            "name": "--tlscert",
+            "description": "Path to TLS certificate file",
+            "kind": "FilePath",
+            "globs": [
+                "*.pem",
+                "*.crt"
+            ],
+            "dir_only": false,
+            "depends_on": [
+                "--tls"
+            ]
+        },
+        {
+            "name": "--tlskey",
+            "description": "Path to TLS key file",
+            "kind": "FilePath",
+            "globs": [
+                "*.pem",
+                "*.key"
+            ],
+            "dir_only": false,
+            "depends_on": [
+                "--tls"
+            ]
+        },
+        {
+            "name": "--tlsverify",
+            "description": "Use TLS and verify remote",
+            "kind": "Flag",
+            "depends_on": [
+                "--tls"
+            ]
+        },
+        {
+            "name": "--version",
+            "description": "Print version information and quit",
+            "kind": "Flag"
+        }
+    ],
+    "subs": {
+        "build": {
+            "exe": "build",
+            "description": "Build an image from a Dockerfile",
+            "args": [
+                {
+                    "name": "--file",
+                    "description": "Name of the Dockerfile",
+                    "kind": "FilePath",
+                    "globs": [
+                        "Dockerfile*",
+                        "*.dockerfile"
+                    ],
+                    "dir_only": false
+                },
+                {
+                    "name": "--tag",
+                    "description": "Name and optionally a tag",
+                    "kind": "Str",
+                    "repeatable": true
+                },
+                {
+                    "name": "--build-arg",
+                    "description": "Set build-time variables",
+                    "kind": "Pairs",
+                    "key": [],
+                    "allow_custom_key": true,
+                    "sep": "=",
+                    "value": {
+                        "kind": "Str"
+                    },
+                    "repeatable": true
+                },
+                {
+                    "name": "--no-cache",
+                    "description": "Do not use cache when building",
+                    "kind": "Flag"
+                },
+                {
+                    "name": "context",
+                    "description": "Build context path",
+                    "required": true,
+                    "kind": "FilePath",
+                    "globs": [
+                        "*"
+                    ],
+                    "dir_only": true
+                }
+            ]
+        },
+        "run": {
+            "exe": "run",
+            "description": "Run a command in a new container",
+            "args": [
+                {
+                    "name": "--detach",
+                    "description": "Run container in background",
+                    "kind": "Flag"
+                },
+                {
+                    "name": "--env",
+                    "description": "Set environment variables",
+                    "kind": "Pairs",
+                    "key": [],
+                    "allow_custom_key": true,
+                    "sep": "=",
+                    "value": {
+                        "kind": "Str"
+                    },
+                    "repeatable": true
+                },
+                {
+                    "name": "--publish",
+                    "description": "Publish container ports",
+                    "kind": "Str",
+                    "repeatable": true
+                },
+                {
+                    "name": "--volume",
+                    "description": "Bind mount a volume",
+                    "kind": "Str",
+                    "repeatable": true
+                },
+                {
+                    "name": "--rm",
+                    "description": "Automatically remove container when it exits",
+                    "kind": "Flag"
+                },
+                {
+                    "name": "--name",
+                    "description": "Assign a name to the container",
+                    "kind": "Str"
+                },
+                {
+                    "name": "image",
+                    "description": "Image to run",
+                    "required": true,
+                    "kind": "Str"
+                },
+                {
+                    "name": "command",
+                    "description": "Command to execute in container",
+                    "kind": "Str"
+                }
+            ]
+        },
+        "exec": {
+            "exe": "exec",
+            "description": "Run a command in a running container",
+            "args": [
+                {
+                    "name": "--detach",
+                    "description": "Run command in background",
+                    "kind": "Flag"
+                },
+                {
+                    "name": "--env",
+                    "description": "Set environment variables",
+                    "kind": "Pairs",
+                    "key": [],
+                    "allow_custom_key": true,
+                    "sep": "=",
+                    "value": {
+                        "kind": "Str"
+                    },
+                    "repeatable": true
+                },
+                {
+                    "name": "--interactive",
+                    "description": "Keep STDIN open",
+                    "kind": "Flag"
+                },
+                {
+                    "name": "--tty",
+                    "description": "Allocate a pseudo-TTY",
+                    "kind": "Flag"
+                },
+                {
+                    "name": "container",
+                    "description": "Container name or ID",
+                    "required": true,
+                    "kind": "Str"
+                },
+                {
+                    "name": "command",
+                    "description": "Command to execute",
+                    "required": true,
+                    "kind": "Str"
+                }
+            ]
+        }
+    },
+    "pull": {
+        "exe": "pull",
+        "description": "Pull an image from a registry",
+        "args": [
+            {
+                "name": "--all-tags",
+                "description": "Download all tagged images",
+                "kind": "Flag"
+            },
+            {
+                "name": "image",
+                "description": "Image name",
+                "required": true,
+                "kind": "Str"
+            }
+        ]
+    },
+    "push": {
+        "exe": "push",
+        "description": "Push an image to a registry",
+        "args": [
+            {
+                "name": "--all-tags",
+                "description": "Push all tags",
+                "kind": "Flag"
+            },
+            {
+                "name": "image",
+                "description": "Image name",
+                "required": true,
+                "kind": "Str"
+            }
+        ]
+    },
+    "images": {
+        "exe": "images",
+        "description": "List images"
+    },
+    "ps": {
+        "exe": "ps",
+        "description": "List containers",
+        "args": [
+            {
+                "name": "--all",
+                "description": "Show all containers",
+                "kind": "Flag"
+            }
+        ]
+    },
+    "stop": {
+        "exe": "stop",
+        "description": "Stop running containers",
+        "args": [
+            {
+                "name": "--time",
+                "description": "Seconds to wait before killing",
+                "kind": "Number",
+                "int": true,
+                "min": 0
+            },
+            {
+                "name": "container",
+                "description": "Container names or IDs",
+                "required": true,
+                "kind": "Str",
+                "repeatable": true
+            }
+        ]
+    },
+    "rm": {
+        "exe": "rm",
+        "description": "Remove containers",
+        "args": [
+            {
+                "name": "--force",
+                "description": "Force remove running container",
+                "kind": "Flag"
+            },
+            {
+                "name": "--volumes",
+                "description": "Remove anonymous volumes",
+                "kind": "Flag"
+            },
+            {
+                "name": "container",
+                "description": "Container names or IDs",
+                "required": true,
+                "kind": "Str",
+                "repeatable": true
+            }
+        ]
+    }
+}

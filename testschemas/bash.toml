@@ -1,0 +1,234 @@
+exe = "bash"
+description = "GNU Bourne Again SHell"
+
+[[args]]
+name = "--debug"
+description = "Arrange for the debugger profile to be executed before the shell starts"
+kind = "Flag"
+
+[[args]]
+name = "--debugger"
+description = "Enable debugging mode"
+kind = "Flag"
+
+[[args]]
+name = "--dump-po-strings"
+description = "Dump translatable strings in PO format"
+kind = "Flag"
+
+[[args]]
+name = "--dump-strings"
+description = "Dump strings for translation"
+kind = "Flag"
+
+[[args]]
+name = "--help"
+description = "Display help and exit"
+kind = "Flag"
+
+[[args]]
+name = "--init-file"
+description = "Execute commands from file instead of ~/.bashrc"
+kind = "FilePath"
+globs = ["*"]
+dir_only = false
+
+[[args]]
+name = "--login"
+description = "Act as a login shell"
+kind = "Flag"
+
+[[args]]
+name = "--noediting"
+description = "Do not use GNU readline"
+kind = "Flag"
+
+[[args]]
+name = "--noprofile"
+description = "Do not read system/user profile files"
+kind = "Flag"
+
+[[args]]
+name = "--norc"
+description = "Do not read ~/.bashrc"
+kind = "Flag"
+
+[[args]]
+name = "--posix"
+description = "Change behavior to match POSIX"
+kind = "Flag"
+
+[[args]]
+name = "--pretty-print"
+description = "Pretty-print shell input and exit"
+kind = "Flag"
+
+[[args]]
+name = "--rcfile"
+description = "Execute commands from file instead of ~/.bashrc"
+kind = "FilePath"
+globs = ["*"]
+dir_only = false
+
+[[args]]
+name = "--rpm-requires"
+description = "Produce RPM dependency list for shell script"
+kind = "Flag"
+
+[[args]]
+name = "--restricted"
+description = "Start restricted shell"
+kind = "Flag"
+
+[[args]]
+name = "--verbose"
+description = "Echo shell input lines as they are read"
+kind = "Flag"
+
+[[args]]
+name = "--version"
+description = "Display version information and exit"
+kind = "Flag"
+
+[[args]]
+name = "-c"
+description = "Read commands from string"
+kind = "Str"
+textarea = true
+
+[[args]]
+name = "-O"
+description = "Set shopt option at startup"
+kind = "Str"
+
+[[args]]
+name = "-o"
+description = "Set shell option"
+kind = "Str"
+
+[[args]]
+name = "-i"
+description = "Interactive shell"
+kind = "Flag"
+
+[[args]]
+name = "-l"
+description = "Login shell"
+kind = "Flag"
+
+[[args]]
+name = "-r"
+description = "Restricted shell"
+kind = "Flag"
+
+[[args]]
+name = "-s"
+description = "Read commands from stdin"
+kind = "Flag"
+
+[[args]]
+name = "-D"
+description = "Dump translatable strings"
+kind = "Flag"
+
+[[args]]
+name = "-a"
+description = "Export all assigned variables"
+kind = "Flag"
+
+[[args]]
+name = "-b"
+description = "Notify of job termination immediately"
+kind = "Flag"
+
+[[args]]
+name = "-e"
+description = "Exit immediately if a command exits non-zero"
+kind = "Flag"
+
+[[args]]
+name = "-f"
+description = "Disable filename expansion"
+kind = "Flag"
+
+[[args]]
+name = "-h"
+description = "Remember command locations"
+kind = "Flag"
+
+[[args]]
+name = "-k"
+description = "Place assignment arguments in environment"
+kind = "Flag"
+
+[[args]]
+name = "-m"
+description = "Enable job control"
+kind = "Flag"
+
+[[args]]
+name = "-n"
+description = "Read commands but do not execute"
+kind = "Flag"
+
+[[args]]
+name = "-p"
+description = "Turn on privileged mode"
+kind = "Flag"
+
+[[args]]
+name = "-t"
+description = "Exit after reading and executing one command"
+kind = "Flag"
+
+[[args]]
+name = "-u"
+description = "Treat unset variables as error"
+kind = "Flag"
+
+[[args]]
+name = "-v"
+description = "Print shell input lines as they are read"
+kind = "Flag"
+
+[[args]]
+name = "-x"
+description = "Print commands and arguments as executed"
+kind = "Flag"
+
+[[args]]
+name = "-B"
+description = "Enable brace expansion"
+kind = "Flag"
+
+[[args]]
+name = "-C"
+description = "Prevent overwriting files with redirection"
+kind = "Flag"
+
+[[args]]
+name = "-E"
+description = "ERR trap inherited by shell functions"
+kind = "Flag"
+
+[[args]]
+name = "-H"
+description = "Enable history expansion"
+kind = "Flag"
+
+[[args]]
+name = "-P"
+description = "Do not follow symbolic links"
+kind = "Flag"
+
+[[args]]
+name = "-T"
+description = "DEBUG and RETURN traps inherited by shell functions"
+kind = "Flag"
+
+[[args]]
+name = "script-file"
+description = "Shell script file to execute"
+kind = "FilePath"
+globs = ["*.sh", "*"]
+dir_only = false
