@@ -41,3 +41,6 @@ fn is_executable(path: &std::path::PathBuf) -> bool {
         });
     }
 }
+
+pub(crate) type FastMap<K, V> = std::collections::HashMap<K, V, ahash::RandomState>;
+pub(crate) type FastSet<K> = std::collections::HashSet<K, ahash::RandomState>;

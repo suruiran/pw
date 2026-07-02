@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
+use ratatui::{layout::Rect, widgets::Paragraph};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(tag = "kind")]
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(tag = "kind", rename_all = "lowercase")]
 pub enum ArgvKind {
     Select {
         options: Option<Vec<String>>,
@@ -57,8 +58,15 @@ pub struct Command {
 }
 
 impl Command {
+    pub fn has_args(&self) -> bool {
+        return self.args.as_ref().is_some_and(|v| !v.is_empty());
+    }
+
+    pub fn has_subs(&self) -> bool {
+        return self.subs.as_ref().is_some_and(|v| !v.is_empty());
+    }
+
     pub fn is_empty(&self) -> bool {
-        return (self.args.is_none() || self.args.as_ref().unwrap().is_empty())
-            && (self.subs.is_none() || self.subs.as_ref().unwrap().is_empty());
+        return !self.has_args() && !self.has_subs();
     }
 }
