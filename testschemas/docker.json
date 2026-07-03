@@ -5,7 +5,7 @@
         {
             "name": "--config",
             "description": "Location of client config files",
-            "kind": "FilePath",
+            "kind": "filepath",
             "globs": [
                 "*"
             ],
@@ -14,23 +14,23 @@
         {
             "name": "--context",
             "description": "Name of the context to use",
-            "kind": "Str"
+            "kind": "str"
         },
         {
             "name": "--debug",
             "description": "Enable debug mode",
-            "kind": "Flag"
+            "kind": "flag"
         },
         {
             "name": "--host",
             "description": "Daemon socket to connect to",
-            "kind": "Str",
+            "kind": "str",
             "repeatable": true
         },
         {
             "name": "--log-level",
             "description": "Set logging level",
-            "kind": "Select",
+            "kind": "select",
             "options": [
                 "trace",
                 "debug",
@@ -44,12 +44,12 @@
         {
             "name": "--tls",
             "description": "Use TLS",
-            "kind": "Flag"
+            "kind": "flag"
         },
         {
             "name": "--tlscacert",
             "description": "Trust certs signed only by this CA",
-            "kind": "FilePath",
+            "kind": "filepath",
             "globs": [
                 "*.pem",
                 "*.crt"
@@ -62,7 +62,7 @@
         {
             "name": "--tlscert",
             "description": "Path to TLS certificate file",
-            "kind": "FilePath",
+            "kind": "filepath",
             "globs": [
                 "*.pem",
                 "*.crt"
@@ -75,7 +75,7 @@
         {
             "name": "--tlskey",
             "description": "Path to TLS key file",
-            "kind": "FilePath",
+            "kind": "filepath",
             "globs": [
                 "*.pem",
                 "*.key"
@@ -88,7 +88,7 @@
         {
             "name": "--tlsverify",
             "description": "Use TLS and verify remote",
-            "kind": "Flag",
+            "kind": "flag",
             "depends_on": [
                 "--tls"
             ]
@@ -96,7 +96,7 @@
         {
             "name": "--version",
             "description": "Print version information and quit",
-            "kind": "Flag"
+            "kind": "flag"
         }
     ],
     "subs": {
@@ -107,7 +107,7 @@
                 {
                     "name": "--file",
                     "description": "Name of the Dockerfile",
-                    "kind": "FilePath",
+                    "kind": "filepath",
                     "globs": [
                         "Dockerfile*",
                         "*.dockerfile"
@@ -117,31 +117,31 @@
                 {
                     "name": "--tag",
                     "description": "Name and optionally a tag",
-                    "kind": "Str",
+                    "kind": "str",
                     "repeatable": true
                 },
                 {
                     "name": "--build-arg",
                     "description": "Set build-time variables",
-                    "kind": "Pairs",
+                    "kind": "pairs",
                     "key": [],
                     "allow_custom_key": true,
                     "sep": "=",
                     "value": {
-                        "kind": "Str"
+                        "kind": "str"
                     },
                     "repeatable": true
                 },
                 {
                     "name": "--no-cache",
                     "description": "Do not use cache when building",
-                    "kind": "Flag"
+                    "kind": "flag"
                 },
                 {
                     "name": "context",
                     "description": "Build context path",
                     "required": true,
-                    "kind": "FilePath",
+                    "kind": "filepath",
                     "globs": [
                         "*"
                     ],
@@ -156,52 +156,52 @@
                 {
                     "name": "--detach",
                     "description": "Run container in background",
-                    "kind": "Flag"
+                    "kind": "flag"
                 },
                 {
                     "name": "--env",
                     "description": "Set environment variables",
-                    "kind": "Pairs",
+                    "kind": "pairs",
                     "key": [],
                     "allow_custom_key": true,
                     "sep": "=",
                     "value": {
-                        "kind": "Str"
+                        "kind": "str"
                     },
                     "repeatable": true
                 },
                 {
                     "name": "--publish",
                     "description": "Publish container ports",
-                    "kind": "Str",
+                    "kind": "str",
                     "repeatable": true
                 },
                 {
                     "name": "--volume",
                     "description": "Bind mount a volume",
-                    "kind": "Str",
+                    "kind": "str",
                     "repeatable": true
                 },
                 {
                     "name": "--rm",
                     "description": "Automatically remove container when it exits",
-                    "kind": "Flag"
+                    "kind": "flag"
                 },
                 {
                     "name": "--name",
                     "description": "Assign a name to the container",
-                    "kind": "Str"
+                    "kind": "str"
                 },
                 {
                     "name": "image",
                     "description": "Image to run",
                     "required": true,
-                    "kind": "Str"
+                    "kind": "str"
                 },
                 {
                     "name": "command",
                     "description": "Command to execute in container",
-                    "kind": "Str"
+                    "kind": "str"
                 }
             ]
         },
@@ -212,41 +212,41 @@
                 {
                     "name": "--detach",
                     "description": "Run command in background",
-                    "kind": "Flag"
+                    "kind": "flag"
                 },
                 {
                     "name": "--env",
                     "description": "Set environment variables",
-                    "kind": "Pairs",
+                    "kind": "pairs",
                     "key": [],
                     "allow_custom_key": true,
                     "sep": "=",
                     "value": {
-                        "kind": "Str"
+                        "kind": "str"
                     },
                     "repeatable": true
                 },
                 {
                     "name": "--interactive",
                     "description": "Keep STDIN open",
-                    "kind": "Flag"
+                    "kind": "flag"
                 },
                 {
                     "name": "--tty",
                     "description": "Allocate a pseudo-TTY",
-                    "kind": "Flag"
+                    "kind": "flag"
                 },
                 {
                     "name": "container",
                     "description": "Container name or ID",
                     "required": true,
-                    "kind": "Str"
+                    "kind": "str"
                 },
                 {
                     "name": "command",
                     "description": "Command to execute",
                     "required": true,
-                    "kind": "Str"
+                    "kind": "str"
                 }
             ]
         }
@@ -258,13 +258,13 @@
             {
                 "name": "--all-tags",
                 "description": "Download all tagged images",
-                "kind": "Flag"
+                "kind": "flag"
             },
             {
                 "name": "image",
                 "description": "Image name",
                 "required": true,
-                "kind": "Str"
+                "kind": "str"
             }
         ]
     },
@@ -275,13 +275,13 @@
             {
                 "name": "--all-tags",
                 "description": "Push all tags",
-                "kind": "Flag"
+                "kind": "flag"
             },
             {
                 "name": "image",
                 "description": "Image name",
                 "required": true,
-                "kind": "Str"
+                "kind": "str"
             }
         ]
     },
@@ -296,7 +296,7 @@
             {
                 "name": "--all",
                 "description": "Show all containers",
-                "kind": "Flag"
+                "kind": "flag"
             }
         ]
     },
@@ -307,7 +307,7 @@
             {
                 "name": "--time",
                 "description": "Seconds to wait before killing",
-                "kind": "Number",
+                "kind": "number",
                 "int": true,
                 "min": 0
             },
@@ -315,7 +315,7 @@
                 "name": "container",
                 "description": "Container names or IDs",
                 "required": true,
-                "kind": "Str",
+                "kind": "str",
                 "repeatable": true
             }
         ]
@@ -327,18 +327,18 @@
             {
                 "name": "--force",
                 "description": "Force remove running container",
-                "kind": "Flag"
+                "kind": "flag"
             },
             {
                 "name": "--volumes",
                 "description": "Remove anonymous volumes",
-                "kind": "Flag"
+                "kind": "flag"
             },
             {
                 "name": "container",
                 "description": "Container names or IDs",
                 "required": true,
-                "kind": "Str",
+                "kind": "str",
                 "repeatable": true
             }
         ]

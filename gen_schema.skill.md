@@ -30,33 +30,33 @@ The output data structure must strictly follow the definitions below.
 
 **Core Field: `kind`** (Must be one of the following 6 types. Provide its specific fields at the same level as the basic fields).
 
-* **Type 1: `Select`** (Enumerated Options)
-    * `kind`: "Select"
+* **Type 1: `select`** (Enumerated Options)
+    * `kind`: "select"
     * `options` (Array of Strings): The list of allowed values.
     * `allow_custom` (Boolean): Whether the user is allowed to input values outside the predefined options.
 
-* **Type 2: `FilePath`** (File or Directory Path)
-    * `kind`: "FilePath"
+* **Type 2: `filepath`** (File or Directory Path)
+    * `kind`: "filepath"
     * `globs` (Array of Strings): File matching patterns, e.g., `["*.txt", "*.json"]`.
     * `dir_only` (Boolean): Whether the path is strictly limited to directories.
 
-* **Type 3: `Str`** (Standard String)
-    * `kind`: "Str"
+* **Type 3: `str`** (Standard String)
+    * `kind`: "str"
     * `from_file` (Boolean): Whether the string can be read from a file.
     * `regexp` (String): A regular expression used to validate the input string.
     * `secret` (Boolean): Whether the input is sensitive (e.g., passwords) and should be hidden.
     * `textarea` (Boolean): Whether it is suitable for long, multi-line text input.
 
-* **Type 4: `Number`** (Numeric Value)
-    * `kind`: "Number"
+* **Type 4: `number`** (Numeric Value)
+    * `kind`: "number"
     * `min` (Float): The minimum allowed value.
     * `max` (Float): The maximum allowed value.
     * `int` (Boolean): Whether the number is strictly limited to integers.
 
-* **Type 5: `Flag`** (Boolean Switch / No-value Argument)
-    * `kind`: "Flag"
+* **Type 5: `flag`** (Boolean Switch / No-value Argument)
+    * `kind`: "flag"
 
-* **Type 6: `Pairs`** (Key-Value Pairs)
+* **Type 6: `pairs`** (Key-Value Pairs)
     * `kind`: "Pairs"
     * `key` (Array of Strings): A list of allowed keys.
     * `allow_custom_key` (Boolean): Whether custom keys are allowed.

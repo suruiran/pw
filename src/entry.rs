@@ -15,5 +15,3 @@ pub(crate) struct Entry {
     #[cfg(debug_assertions)]
     pub log: Option<String>,
 }
-
-pub(crate) struct Theme {}

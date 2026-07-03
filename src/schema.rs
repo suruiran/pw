@@ -34,8 +34,31 @@ pub enum ArgvKind {
     },
 }
 
+impl ArgvKind {
+    pub(crate) fn kind(&self) -> &'static str {
+        match self {
+            ArgvKind::Select { .. } => "Select",
+            ArgvKind::FilePath { .. } => "FilePath",
+            ArgvKind::Str {
+                secret, textarea, ..
+            } => {
+                if secret.unwrap_or(false) {
+                    return "Secret";
+                }
+                if textarea.unwrap_or(false) {
+                    return "Textarea";
+                }
+                return "String";
+            }
+            ArgvKind::Number { .. } => "Number",
+            ArgvKind::Flag {} => "Flag",
+            ArgvKind::Pairs { .. } => "Pairs",
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Argv {
+pub struct Argument {
     pub(crate) name: String,
     #[serde(flatten)]
     pub(crate) kind: ArgvKind,
@@ -53,7 +76,7 @@ pub struct Argv {
 pub struct Command {
     pub(crate) exe: String,
     pub(crate) description: Option<String>,
-    pub(crate) args: Option<Vec<Argv>>,
+    pub(crate) args: Option<Vec<Argument>>,
     pub(crate) subs: Option<HashMap<String, Command>>,
 }
 

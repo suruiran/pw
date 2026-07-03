@@ -1,14 +1,19 @@
 use clap::Parser;
 
 mod entry;
+mod entry_theme;
 mod load_schema;
+mod model_state;
 mod repl;
 mod schema;
+mod schema_command;
 mod ui;
 mod ui_argv;
+mod ui_argv_str;
 mod ui_content;
 mod ui_eleinfo;
 mod ui_event;
+mod ui_helper;
 mod ui_style;
 mod utils;
 
@@ -38,6 +43,7 @@ fn main() -> Result<(), String> {
                 .to_string_lossy()
                 .to_string(),
             std::env::var("PW_HOST_CUSTOM_CONFIGS").unwrap_or("".to_string()),
+            std::env::var("PW_GITHUB_REPO_CONFIGS").unwrap_or("".to_string()),
         ];
     });
 

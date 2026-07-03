@@ -1,8 +1,6 @@
-use std::rc::Rc;
-
 use ratatui::style::Style;
 
-use crate::{entry::Theme, ui::UIApp};
+use crate::{entry_theme::EntryThemeRef, ui::UIApp};
 
 impl UIApp {
     pub(crate) fn style(&self, id: &str) -> Style {
@@ -10,6 +8,6 @@ impl UIApp {
     }
 }
 
-pub(crate) fn style_by_id(theme: Rc<Option<Theme>>, id: &str) -> Style {
+pub(crate) fn style_by_id(theme: EntryThemeRef, id: &str) -> Style {
     return Style::new();
 }

@@ -3,41 +3,18 @@ use std::{any::Any, cell::RefCell, rc::Rc};
 use crossterm::event::Event;
 use ratatui::{
     DefaultTerminal, Frame,
-    layout::{Layout, Rect, Size},
+    layout::{Layout, Rect},
     widgets::{Paragraph, Widget},
 };
-use tui_scrollview::{ScrollView, ScrollViewState};
 
 use crate::{
-    entry::Theme,
+    entry_theme::EntryThemeRef,
+    model_state::ModelState,
     repl::repl,
     schema,
     ui_eleinfo::{EleOptions, EleTempInfo, ele_opts_by_id},
-    ui_style::style_by_id,
     utils::FastMap,
 };
-
-#[derive(Debug, Default)]
-pub(crate) struct ArgvWithValue {
-    pub(crate) name: String,
-    pub(crate) value: Option<Vec<String>>,
-}
-
-#[derive(Debug, Default)]
-pub(crate) struct CmdWithValue {
-    pub(crate) name: String,
-    pub(crate) args: Vec<ArgvWithValue>,
-    pub(crate) current: Option<String>,
-}
-
-#[derive(Debug, Default)]
-pub(crate) struct State {
-    pub(crate) cmds: Vec<CmdWithValue>,
-    pub(crate) current: Option<usize>,
-
-    pub(crate) inputid: String,
-    pub(crate) inputtemp: String,
-}
 
 pub(crate) const LEVEL_BASE: i32 = 0;
 pub(crate) const LEVEL_FLOATING: i32 = 10000;
@@ -45,8 +22,8 @@ pub(crate) const LEVEL_NOTIFY: i32 = 20000;
 
 pub(crate) struct UIApp {
     pub(crate) cmd: Rc<schema::Command>,
-    pub(crate) state: Rc<RefCell<State>>,
-    pub(crate) theme: Rc<Option<Theme>>,
+    pub(crate) model_state: Rc<RefCell<ModelState>>,
+    pub(crate) theme: EntryThemeRef,
 
     pub(crate) evt: Option<Event>,
 
@@ -69,14 +46,14 @@ impl UIApp {
         let mut path: Vec<String> = vec![current_cmd.exe.to_string()];
         let mut found_cmd: bool = false;
 
-        let model_state = self.state.borrow();
+        let model_state = self.model_state.borrow();
 
         if let Some(cidx) = model_state.current {
-            if cidx >= model_state.cmds.len() {
+            if cidx >= model_state.stack.len() {
                 current_cmd = &self.cmd;
             } else {
                 for idx in 1..=cidx {
-                    let cmdv = &model_state.cmds[idx];
+                    let cmdv = &model_state.stack[idx];
                     if current_cmd.subs.is_none() {
                         break;
                     }
@@ -96,17 +73,17 @@ impl UIApp {
         drop(model_state);
 
         if !found_cmd {
-            let mut model_state = self.state.borrow_mut();
-            model_state.cmds.clear();
+            let mut model_state = self.model_state.borrow_mut();
+            model_state.stack = vec![Default::default()];
             model_state.current = Some(0);
 
             path = vec![current_cmd.exe.to_string()];
         }
 
-        let model_state = self.state.borrow();
+        let model_state = self.model_state.borrow();
 
         let mut current_argv_name: Option<String> = None;
-        let current_cmd_with_val = &model_state.cmds[model_state.current.unwrap()];
+        let current_cmd_with_val = &model_state.stack[model_state.current.unwrap()];
         match current_cmd_with_val.current.as_ref() {
             Some(v) => {
                 current_argv_name = Some(v.clone());
@@ -129,7 +106,7 @@ impl UIApp {
 
         if inputid != model_state.inputid {
             drop(model_state);
-            let mut model_state = self.state.borrow_mut();
+            let mut model_state = self.model_state.borrow_mut();
 
             model_state.inputid.clear();
             model_state.inputtemp.clear();
@@ -314,7 +291,7 @@ pub(crate) fn ui(cmd: schema::Command) -> Result<Vec<String>, String> {
 
     let mut app = UIApp {
         cmd: Rc::new(cmd),
-        state: Default::default(),
+        model_state: Default::default(),
         evt: None,
         mouse_enabled: crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)
             .is_ok(),

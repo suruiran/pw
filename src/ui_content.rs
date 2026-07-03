@@ -1,12 +1,17 @@
 use std::{cell::RefCell, rc::Rc};
 
-use ratatui::layout::{Layout, Rect, Size};
+use ratatui::{
+    layout::{Layout, Margin, Rect, Size},
+    widgets::Padding,
+};
 use tui_scrollview::{ScrollView, ScrollViewState};
 
 use crate::ui::{LEVEL_BASE, UIApp, UIState, get_current_schema};
 
 impl UIApp {
     pub(crate) fn render_content(&mut self, container: Rect, uistate: Rc<UIState>) {
+        let container = container.inner(Margin::new(1, 0));
+
         let wrapper_id = "content/scrollview".to_string();
 
         if let Some(prev_path) = self.prev_path.as_ref()
@@ -15,85 +20,65 @@ impl UIApp {
             self.states.remove(&wrapper_id);
         }
 
+        // hold memory
+        let scrollview_state = self
+            .states
+            .entry(wrapper_id.clone())
+            .or_insert(Rc::new(RefCell::new(ScrollViewState::new())))
+            .clone();
+
         let root = self.cmd.clone();
-        let schema = get_current_schema(&root, &uistate.path);
+        let uistate = uistate.clone();
+        let model_state = self.model_state.clone();
+        let theme = self.theme.clone();
+        self.on_state_ele(
+            LEVEL_BASE,
+            wrapper_id.clone(),
+            Box::new(move |f, a: Rect| {
+                let schema = get_current_schema(&root, &uistate.path);
+                let args = schema.available_args(&model_state.borrow(), &uistate.path);
 
-        const ELE_HEIGHT: u16 = 2;
-
-        let mut height = 0;
-        if schema.has_args() {
-            height += schema.args.as_ref().unwrap().len() * (ELE_HEIGHT as usize);
-        }
-        if schema.has_subs() {
-            height += ELE_HEIGHT as usize;
-        }
-
-        {
-            let size = Size::new(container.width, height as u16);
-            // hold memory
-            let scrollview_state = self
-                .states
-                .entry(wrapper_id.clone())
-                .or_insert(Rc::new(RefCell::new(ScrollViewState::new())))
-                .clone();
-            let root = self.cmd.clone();
-            let uistate = uistate.clone();
-            let theme = self.theme.clone();
-            let model_state = self.state.clone();
-            self.on_state_ele(
-                LEVEL_BASE,
-                wrapper_id.clone(),
-                Box::new(move |f, a| {
-                    let schema = get_current_schema(&root, &uistate.path);
-                    let scrollview_state = scrollview_state
-                        .borrow_mut()
-                        .downcast_mut::<ScrollViewState>()
-                        .expect("unexpect state type, required ScrollViewState");
-
-                    let mut scrollview = Rc::new(RefCell::new(ScrollView::new(size)));
-
-                    let mut constraints = vec![];
-                    if schema.has_args() {
-                        for argv in schema.args.as_ref().unwrap() {
-                            let mut ele_len = ELE_HEIGHT;
-                            if argv.repeatable.unwrap_or(false) {}
-                            constraints.push(ratatui::layout::Constraint::Length(ELE_HEIGHT));
-                        }
+                let mut constraints = vec![];
+                let mut height = 0;
+                if args.len() > 0 {
+                    for arg in args.iter() {
+                        let arg_height = arg.height(&model_state.borrow(), &uistate.path);
+                        height += arg_height;
+                        constraints.push(ratatui::layout::Constraint::Length(arg_height));
                     }
-                    if schema.has_subs() {
-                        constraints.push(ratatui::layout::Constraint::Length(ELE_HEIGHT));
-                    }
+                }
+                if schema.has_subs() {
+                    height += 2;
+                    constraints.push(ratatui::layout::Constraint::Length(2));
+                }
+                let size = Size::new(container.width, height as u16);
 
-                    let layouts = Layout::new(ratatui::layout::Direction::Vertical, constraints)
-                        .split(scrollview.borrow().area());
+                let mut scrollview_state = scrollview_state.borrow_mut();
+                let scrollview_state = scrollview_state
+                    .downcast_mut::<ScrollViewState>()
+                    .expect("unexpect state type, required ScrollViewState");
 
-                    let mut lidx = 0;
-                    if schema.has_args() {
-                        for argv in schema.args.as_ref().unwrap() {
-                            let argv_layouts = Layout::default()
-                                .direction(ratatui::layout::Direction::Vertical)
-                                .constraints(vec![
-                                    ratatui::layout::Constraint::Fill(1),
-                                    ratatui::layout::Constraint::Fill(1),
-                                ])
-                                .split(layouts[lidx]);
-                            lidx += 1;
+                let mut scrollview = ScrollView::new(size)
+                    .horizontal_scrollbar_visibility(tui_scrollview::ScrollbarVisibility::Never);
 
-                            let argv_id = format!(
-                                "{}/argv/{}/label",
-                                wrapper_id.as_str(),
-                                argv.name.as_str()
-                            );
-                            let scrollview = scrollview.clone();
-                            argv.label(&argv_id, argv_layouts[0], move |p, a| {
-                                let mut scrollview = scrollview.borrow_mut();
-                                scrollview.render_widget(p, a);
-                            });
-                        }
-                    }
-                }),
-                container,
-            );
-        }
+                let layouts = Layout::new(ratatui::layout::Direction::Vertical, constraints)
+                    .split(scrollview.area());
+
+                let mut lidx = 0;
+                for arg in args.iter() {
+                    arg.render(
+                        &mut scrollview,
+                        layouts[lidx],
+                        &model_state.borrow(),
+                        &uistate.path,
+                        theme.clone(),
+                    );
+                    lidx += 1;
+                }
+
+                f.render_stateful_widget(scrollview, a, scrollview_state);
+            }),
+            container,
+        );
     }
 }
