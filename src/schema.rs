@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use ratatui::{layout::Rect, widgets::Paragraph};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -78,10 +77,11 @@ pub struct Command {
     pub(crate) description: Option<String>,
     pub(crate) args: Option<Vec<Argument>>,
     pub(crate) subs: Option<HashMap<String, Command>>,
+    pub(crate) incomplete: Option<bool>,
 }
 
 impl Command {
-    pub fn has_args(&self) -> bool {
+    fn has_args(&self) -> bool {
         return self.args.as_ref().is_some_and(|v| !v.is_empty());
     }
 
@@ -91,5 +91,12 @@ impl Command {
 
     pub fn is_empty(&self) -> bool {
         return !self.has_args() && !self.has_subs();
+    }
+
+    pub fn can_exit(&self) -> bool {
+        if !self.has_subs() {
+            return true;
+        }
+        return !self.incomplete.unwrap_or(false);
     }
 }

@@ -14,7 +14,6 @@ mod ui_content;
 mod ui_eleinfo;
 mod ui_event;
 mod ui_helper;
-mod ui_style;
 mod utils;
 
 fn main() -> Result<(), String> {

@@ -10,7 +10,8 @@ pub(crate) struct Argv {
 pub(crate) struct CmdWithValue {
     pub(crate) name: String,
     pub(crate) args: FastMap<String, Argv>,
-    pub(crate) current: Option<String>,
+    pub(crate) current_argu: Option<String>,
+    pub(crate) current_argv: Option<usize>,
 }
 
 #[derive(Debug, Default)]
@@ -21,6 +22,10 @@ pub(crate) struct ModelState {
 
     pub(crate) inputid: String,
     pub(crate) inputtemp: String,
+}
+
+impl ModelState {
+    pub(crate) fn current() {}
 }
 
 pub(crate) fn get_cmdv<'a>(ms: &'a ModelState, path: &[String]) -> Option<&'a CmdWithValue> {
@@ -62,7 +67,7 @@ pub(crate) fn get_cmdv_mut<'a>(
     return ms.cache.get_mut(path.join("/").as_str());
 }
 
-pub(crate) fn get_argv<'a>(
+pub(crate) fn get_argvs<'a>(
     ms: &'a ModelState,
     path: &[String],
     argn: &str,
@@ -70,10 +75,28 @@ pub(crate) fn get_argv<'a>(
     return get_cmdv(ms, path)?.args.get(argn)?.value.as_ref();
 }
 
-pub(crate) fn get_argv_mut<'a>(
+pub(crate) fn get_argvs_mut<'a>(
     ms: &'a mut ModelState,
     path: &[String],
     argn: &str,
 ) -> Option<&'a mut Vec<String>> {
     return get_cmdv_mut(ms, path)?.args.get_mut(argn)?.value.as_mut();
+}
+
+pub(crate) fn get_argv<'a>(
+    ms: &'a ModelState,
+    path: &[String],
+    argn: &str,
+    validx: Option<usize>,
+) -> Option<&'a String> {
+    return get_argvs(ms, path, argn)?.get(validx?);
+}
+
+pub(crate) fn get_argv_mut<'a>(
+    ms: &'a mut ModelState,
+    path: &[String],
+    argn: &str,
+    validx: Option<usize>,
+) -> Option<&'a mut String> {
+    return get_argvs_mut(ms, path, argn)?.get_mut(validx?);
 }

@@ -1,4 +1,4 @@
-use std::{any::Any, cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use crossterm::event::Event;
 use ratatui::{
@@ -6,6 +6,7 @@ use ratatui::{
     layout::{Layout, Rect},
     widgets::{Paragraph, Widget},
 };
+use tui_scrollview::ScrollViewState;
 
 use crate::{
     entry_theme::EntryThemeRef,
@@ -30,7 +31,7 @@ pub(crate) struct UIApp {
     pub(crate) mouse_enabled: bool,
 
     pub(crate) ele_temps: Rc<RefCell<FastMap<i32, Vec<EleTempInfo>>>>,
-    pub(crate) states: FastMap<String, Rc<RefCell<dyn Any>>>,
+    pub(crate) scrollview_sate: Rc<RefCell<Option<ScrollViewState>>>,
     pub(crate) prev_path: Option<Vec<String>>,
 }
 
@@ -84,7 +85,7 @@ impl UIApp {
 
         let mut current_argv_name: Option<String> = None;
         let current_cmd_with_val = &model_state.stack[model_state.current.unwrap()];
-        match current_cmd_with_val.current.as_ref() {
+        match current_cmd_with_val.current_argu.as_ref() {
             Some(v) => {
                 current_argv_name = Some(v.clone());
             }
@@ -197,7 +198,7 @@ impl UIApp {
             self.on_plain_ele(
                 LEVEL_BASE,
                 id.clone(),
-                Paragraph::new(name.clone()).style(self.style(id.as_str())),
+                Paragraph::new(name.clone()),
                 layout[idx],
             );
         }
@@ -296,9 +297,9 @@ pub(crate) fn ui(cmd: schema::Command) -> Result<Vec<String>, String> {
         mouse_enabled: crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)
             .is_ok(),
         ele_temps: Default::default(),
-        states: Default::default(),
+        scrollview_sate: Default::default(),
         prev_path: None,
-        theme: Rc::new(None),
+        theme: Default::default(),
     };
     match app.run(&mut terminal) {
         Ok(_) => {}

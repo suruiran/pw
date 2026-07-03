@@ -1,9 +1,6 @@
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
-use ratatui::{
-    layout::{Layout, Margin, Rect, Size},
-    widgets::Padding,
-};
+use ratatui::layout::{Layout, Margin, Rect, Size};
 use tui_scrollview::{ScrollView, ScrollViewState};
 
 use crate::ui::{LEVEL_BASE, UIApp, UIState, get_current_schema};
@@ -17,15 +14,18 @@ impl UIApp {
         if let Some(prev_path) = self.prev_path.as_ref()
             && prev_path.join("/") != uistate.path.join("/")
         {
-            self.states.remove(&wrapper_id);
+            let mut scrollview_state = self.scrollview_sate.borrow_mut();
+            *scrollview_state = None;
         }
 
-        // hold memory
-        let scrollview_state = self
-            .states
-            .entry(wrapper_id.clone())
-            .or_insert(Rc::new(RefCell::new(ScrollViewState::new())))
-            .clone();
+        {
+            let mut scrollview_state = self.scrollview_sate.borrow_mut();
+            if scrollview_state.is_none() {
+                *scrollview_state = Some(ScrollViewState::new());
+            }
+        }
+
+        let scrollview_state = self.scrollview_sate.clone();
 
         let root = self.cmd.clone();
         let uistate = uistate.clone();
@@ -55,14 +55,21 @@ impl UIApp {
 
                 let mut scrollview_state = scrollview_state.borrow_mut();
                 let scrollview_state = scrollview_state
-                    .downcast_mut::<ScrollViewState>()
-                    .expect("unexpect state type, required ScrollViewState");
-
+                    .as_mut()
+                    .expect("unreachable code: empty ScrollViewState");
                 let mut scrollview = ScrollView::new(size)
                     .horizontal_scrollbar_visibility(tui_scrollview::ScrollbarVisibility::Never);
 
-                let layouts = Layout::new(ratatui::layout::Direction::Vertical, constraints)
-                    .split(scrollview.area());
+                let layouts = Layout::new(ratatui::layout::Direction::Vertical, constraints).split(
+                    scrollview.area().inner(Margin {
+                        horizontal: 1,
+                        vertical: 0,
+                    }),
+                );
+
+                {
+                    let model_state = model_state.borrow();
+                }
 
                 let mut lidx = 0;
                 for arg in args.iter() {

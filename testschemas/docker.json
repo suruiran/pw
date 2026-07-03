@@ -25,7 +25,8 @@
             "name": "--host",
             "description": "Daemon socket to connect to",
             "kind": "str",
-            "repeatable": true
+            "repeatable": true,
+            "required": true
         },
         {
             "name": "--log-level",
