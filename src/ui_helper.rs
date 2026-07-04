@@ -1,4 +1,7 @@
-use ratatui::layout::{Direction, Layout, Rect};
+use ratatui::{
+    layout::{Direction, Layout, Rect},
+    text::Span,
+};
 
 pub(crate) struct UIHelper {}
 

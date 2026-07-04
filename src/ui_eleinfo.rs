@@ -1,31 +1,49 @@
-use bitflags::bitflags;
 use ratatui::{
     Frame,
     layout::{Rect, Size},
 };
 
-use crate::ui::UIApp;
+#[derive(Debug)]
+pub(crate) enum ActiveAction {
+    Nothing,
+    ShowArguDesc(String),
+    ShowCommnadDesc,
+    Input,
+    AddArgv,
+    DelArgv(usize),
+}
 
-bitflags! {
-    #[derive(Debug, Default)]
-     pub struct PreventEventMode: u8 {
-        const KEY    = 0b0000_0001;
-        const MOUSE   = 0b0000_0010;
+impl Default for ActiveAction {
+    fn default() -> Self {
+        return ActiveAction::Nothing;
     }
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct ScrollViewRef {
-    pub(crate) id: String,
-    pub(crate) size: Size,
-    pub(crate) area: Rect,
+pub(crate) struct EleOptions {
+    pub(crate) in_scroll_view: bool,
+    pub(crate) input_id: Option<String>,
+    pub(crate) on_active: ActiveAction,
 }
 
-#[derive(Debug, Default)]
-pub(crate) struct EleOptions {
-    pub(crate) prevent_event: PreventEventMode,
-    pub(crate) in_scroll_view: Option<ScrollViewRef>,
-    pub(crate) input_id: Option<String>,
+impl EleOptions {
+    pub(crate) fn new(in_scrollview: bool) -> Self {
+        let mut ele: Self = Default::default();
+        ele.in_scroll_view = in_scrollview;
+        return ele;
+    }
+
+    pub(crate) fn set_input_id(self, id: &str) -> Self {
+        let mut ele = self;
+        ele.input_id = Some(id.to_string());
+        return ele;
+    }
+
+    pub(crate) fn set_action(self, action: ActiveAction) -> Self {
+        let mut ele = self;
+        ele.on_active = action;
+        return ele;
+    }
 }
 
 pub(crate) struct EleTempInfo {
@@ -35,12 +53,18 @@ pub(crate) struct EleTempInfo {
     pub(crate) opts: Option<EleOptions>,
 }
 
-impl UIApp {
-    pub(crate) fn eleopts(&self, id: &str) -> Option<EleOptions> {
-        return ele_opts_by_id(id);
+impl EleTempInfo {
+    pub(crate) fn responsive(&self) -> bool {
+        if let Some(opts) = self.opts.as_ref() {
+            match opts.on_active {
+                ActiveAction::Nothing => {
+                    return false;
+                }
+                _ => {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
-}
-
-pub(crate) fn ele_opts_by_id(id: &str) -> Option<EleOptions> {
-    return None;
 }

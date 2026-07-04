@@ -22,4 +22,3 @@ which = "8.0.4"
 tui-input = { version = "*", features = [
     "crossterm",
 ], default-features = false }
-error = "0.1.9"

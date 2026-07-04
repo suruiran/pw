@@ -23,12 +23,12 @@ pub(crate) enum ChangeFocusAction {
 
 impl UIApp {
     fn do_scroll(&mut self, action: ScrollAction) {
-        // todo check state to prevent
-        let mut scrollview_state = self.scrollview_sate.borrow_mut();
-        if scrollview_state.is_none() {
+        let mut scrollview = self.scrollview.borrow_mut();
+        if scrollview.is_none() {
             return;
         }
-        let scrollview_state = scrollview_state.as_mut().unwrap();
+        let scrollview = scrollview.as_mut().unwrap();
+        let scrollview_state = &mut scrollview.state;
 
         if action.contains(ScrollAction::ToTop) {
             scrollview_state.scroll_to_top();

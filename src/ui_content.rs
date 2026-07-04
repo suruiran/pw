@@ -1,9 +1,9 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use ratatui::layout::{Layout, Margin, Rect, Size};
-use tui_scrollview::{ScrollView, ScrollViewState};
+use tui_scrollview::ScrollView;
 
-use crate::ui::{LEVEL_BASE, UIApp, UIState, get_current_schema};
+use crate::ui::{ElesTempRef, LEVEL_BASE, ScrollViewInfo, UIApp, UIState, get_current_schema};
 
 impl UIApp {
     pub(crate) fn render_content(&mut self, container: Rect, uistate: Rc<UIState>) {
@@ -14,23 +14,28 @@ impl UIApp {
         if let Some(prev_path) = self.prev_path.as_ref()
             && prev_path.join("/") != uistate.path.join("/")
         {
-            let mut scrollview_state = self.scrollview_sate.borrow_mut();
-            *scrollview_state = None;
+            let mut scrollview = self.scrollview.borrow_mut();
+            *scrollview = None;
         }
 
         {
-            let mut scrollview_state = self.scrollview_sate.borrow_mut();
-            if scrollview_state.is_none() {
-                *scrollview_state = Some(ScrollViewState::new());
+            let mut scrollview = self.scrollview.borrow_mut();
+            if scrollview.is_none() {
+                let mut val = ScrollViewInfo::default();
+                val.area = container;
+
+                *scrollview = Some(val);
             }
         }
 
-        let scrollview_state = self.scrollview_sate.clone();
+        let scrollview = self.scrollview.clone();
 
         let root = self.cmd.clone();
         let uistate = uistate.clone();
         let model_state = self.model_state.clone();
         let theme = self.theme.clone();
+
+        let ctx = self.render_ctx.clone();
         self.on_state_ele(
             LEVEL_BASE,
             wrapper_id.clone(),
@@ -53,10 +58,12 @@ impl UIApp {
                 }
                 let size = Size::new(container.width, height as u16);
 
-                let mut scrollview_state = scrollview_state.borrow_mut();
-                let scrollview_state = scrollview_state
+                let mut scrollview = scrollview.borrow_mut();
+                let scrollview = scrollview
                     .as_mut()
-                    .expect("unreachable code: empty ScrollViewState");
+                    .expect("unreachable code: empty ScrollViewInfo");
+                scrollview.size = size;
+                let scrollview_state = &mut scrollview.state;
                 let mut scrollview = ScrollView::new(size)
                     .horizontal_scrollbar_visibility(tui_scrollview::ScrollbarVisibility::Never);
 
@@ -67,13 +74,12 @@ impl UIApp {
                     }),
                 );
 
-                {
-                    let model_state = model_state.borrow();
-                }
+                let mut ctx = ctx.borrow_mut();
 
                 let mut lidx = 0;
                 for arg in args.iter() {
                     arg.render(
+                        &mut ctx,
                         &mut scrollview,
                         layouts[lidx],
                         &model_state.borrow(),
@@ -86,6 +92,25 @@ impl UIApp {
                 f.render_stateful_widget(scrollview, a, scrollview_state);
             }),
             container,
+            None,
         );
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct RenderCtx {
+    lazys: Vec<Box<dyn FnOnce(ElesTempRef) + 'static>>,
+}
+
+impl RenderCtx {
+    pub(crate) fn push<F: FnOnce(ElesTempRef) + 'static>(&mut self, f: F) -> &mut Self {
+        self.lazys.push(Box::new(f));
+        return self;
+    }
+
+    pub(crate) fn drain(&mut self, eles: ElesTempRef) {
+        for f in std::mem::take(&mut self.lazys) {
+            f(eles.clone());
+        }
     }
 }

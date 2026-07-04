@@ -1,5 +1,7 @@
 use ratatui::style::Style;
 
+//TODO fill EntryTheme
+
 #[derive(Debug, Default, serde::Deserialize)]
 pub(crate) struct EntryTheme {}
 
@@ -35,6 +37,10 @@ impl EntryTheme {
     }
 
     pub(crate) fn argu_label_desc_indicator_style(&self) -> Style {
+        return Style::new();
+    }
+
+    pub(crate) fn argu_label_desc_style(&self) -> Style {
         return Style::new();
     }
 

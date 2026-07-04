@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use crossterm::event::Event;
 use ratatui::{
     DefaultTerminal, Frame,
-    layout::{Layout, Rect},
+    layout::{Layout, Rect, Size},
     widgets::{Paragraph, Widget},
 };
 use tui_scrollview::ScrollViewState;
@@ -12,14 +12,24 @@ use crate::{
     entry_theme::EntryThemeRef,
     model_state::ModelState,
     repl::repl,
-    schema,
-    ui_eleinfo::{EleOptions, EleTempInfo, ele_opts_by_id},
+    schema::{self, Argument},
+    ui_content::RenderCtx,
+    ui_eleinfo::{EleOptions, EleTempInfo},
     utils::FastMap,
 };
 
 pub(crate) const LEVEL_BASE: i32 = 0;
 pub(crate) const LEVEL_FLOATING: i32 = 10000;
 pub(crate) const LEVEL_NOTIFY: i32 = 20000;
+
+#[derive(Debug, Default)]
+pub(crate) struct ScrollViewInfo {
+    pub(crate) area: Rect,
+    pub(crate) size: Size,
+    pub(crate) state: ScrollViewState,
+}
+
+pub(crate) type ElesTempRef = Rc<RefCell<FastMap<i32, Vec<EleTempInfo>>>>;
 
 pub(crate) struct UIApp {
     pub(crate) cmd: Rc<schema::Command>,
@@ -30,8 +40,9 @@ pub(crate) struct UIApp {
 
     pub(crate) mouse_enabled: bool,
 
-    pub(crate) ele_temps: Rc<RefCell<FastMap<i32, Vec<EleTempInfo>>>>,
-    pub(crate) scrollview_sate: Rc<RefCell<Option<ScrollViewState>>>,
+    pub(crate) render_ctx: Rc<RefCell<RenderCtx>>,
+    pub(crate) eles_temp: ElesTempRef,
+    pub(crate) scrollview: Rc<RefCell<Option<ScrollViewInfo>>>,
     pub(crate) prev_path: Option<Vec<String>>,
 }
 
@@ -99,10 +110,10 @@ impl UIApp {
             },
         }
 
-        let inputid = format!(
-            "{}::{}",
-            path.join("."),
-            current_argv_name.as_deref().unwrap_or("")
+        let inputid = Argument::mk_input_id(
+            current_argv_name.as_ref().unwrap_or(&"".to_string()),
+            &path,
+            current_cmd_with_val.current_argv.unwrap_or(0),
         );
 
         if inputid != model_state.inputid {
@@ -139,9 +150,8 @@ impl UIApp {
     fn run(&mut self, terminal: &mut DefaultTerminal) -> std::io::Result<()> {
         loop {
             let state = Rc::new(self.current_ui_state());
-            let mut eles = self.ele_temps.borrow_mut();
-            eles.clear();
-            drop(eles);
+            self.eles_temp.borrow_mut().clear();
+
             terminal.draw(|frame| self.render(frame, state.clone()))?;
             self.evt = Some(crossterm::event::read()?);
             if !self.react() {
@@ -163,8 +173,8 @@ impl UIApp {
 
         self.render_content(layout[0], uistate.clone());
         self.render_footer(layout[1], uistate.clone());
-
         self._render(frame);
+        self.render_ctx.borrow_mut().drain(self.eles_temp.clone());
     }
 
     fn render_footer(&mut self, container: Rect, uistate: Rc<UIState>) {
@@ -200,6 +210,7 @@ impl UIApp {
                 id.clone(),
                 Paragraph::new(name.clone()),
                 layout[idx],
+                None,
             );
         }
     }
@@ -212,15 +223,15 @@ impl UIApp {
         id: String,
         render: Box<dyn FnOnce(&mut Frame, Rect)>,
         area: Rect,
+        opts: Option<EleOptions>,
     ) {
-        let opts = self.eleopts(id.as_str());
         let eletemp = EleTempInfo {
             id,
             render_fn: Some(render),
             area,
             opts,
         };
-        on_ele(self.ele_temps.clone(), level, eletemp);
+        on_ele(self.eles_temp.clone(), level, eletemp);
     }
 
     pub fn on_plain_ele<W: Widget + 'static>(
@@ -229,6 +240,7 @@ impl UIApp {
         id: String,
         widget: W,
         area: Rect,
+        opts: Option<EleOptions>,
     ) {
         self.on_state_ele(
             level,
@@ -237,11 +249,12 @@ impl UIApp {
                 f.render_widget(widget, a);
             }),
             area,
+            opts,
         );
     }
 
     fn _render(&mut self, frame: &mut Frame) {
-        let mut eles = self.ele_temps.borrow_mut();
+        let mut eles = self.eles_temp.borrow_mut();
         let mut levels = eles.keys().map(|v| *v).collect::<Vec<_>>();
         levels.sort();
 
@@ -296,8 +309,9 @@ pub(crate) fn ui(cmd: schema::Command) -> Result<Vec<String>, String> {
         evt: None,
         mouse_enabled: crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)
             .is_ok(),
-        ele_temps: Default::default(),
-        scrollview_sate: Default::default(),
+        render_ctx: Default::default(),
+        eles_temp: Default::default(),
+        scrollview: Default::default(),
         prev_path: None,
         theme: Default::default(),
     };
@@ -310,17 +324,13 @@ pub(crate) fn ui(cmd: schema::Command) -> Result<Vec<String>, String> {
     return Ok(vec![]);
 }
 
-pub(crate) fn on_event_ele<F: FnOnce(Option<EleOptions>) -> Option<EleOptions>>(
-    eles: Rc<RefCell<FastMap<i32, Vec<EleTempInfo>>>>,
+pub(crate) fn on_event_ele(
+    eles: ElesTempRef,
     level: i32,
     id: String,
     area: Rect,
-    optscb: Option<F>,
+    opts: Option<EleOptions>,
 ) {
-    let mut opts = ele_opts_by_id(id.as_str());
-    if let Some(optscb) = optscb {
-        opts = optscb(opts);
-    }
     let eletemp = EleTempInfo {
         id,
         render_fn: None,
