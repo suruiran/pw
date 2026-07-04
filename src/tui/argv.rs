@@ -12,11 +12,11 @@ use crate::{
     model_state::{ModelState, get_argvs},
     schema::Argument,
     tui::{
+        app::on_event_ele,
         consts::uiconsts,
         content::RenderCtx,
         eleinfo::{ActiveAction, EleOptions},
         layers::EleLevel,
-        app::on_event_ele,
     },
 };
 
@@ -94,7 +94,7 @@ impl Argument {
                 theme.argu_label_add_value_style(),
                 10
             );
-            add_value_idx = Some(constraints.len());
+            add_value_idx = Some(constraints.len() - 1);
         }
 
         if let Some(description) = self.description.as_ref() {
@@ -124,7 +124,7 @@ impl Argument {
                     theme.argu_label_desc_indicator_style(),
                     10
                 );
-                desc_indicator_idx = Some(constraints.len());
+                desc_indicator_idx = Some(constraints.len() - 1);
             }
         }
 
@@ -143,7 +143,7 @@ impl Argument {
             idx += 1;
         }
 
-        let id_prefix = "argu/label/";
+        let id_prefix = "argu/label";
 
         if let Some(idx) = add_value_idx {
             let area = layouts[idx];
@@ -154,7 +154,7 @@ impl Argument {
                     EleLevel::Base,
                     format!("{id_prefix}/add_val#{}", name),
                     area,
-                    Some(EleOptions::default().set_action(ActiveAction::AddArgv)),
+                    Some(EleOptions::new(true).set_action(ActiveAction::AddArgv)),
                 );
             });
         }
@@ -167,7 +167,7 @@ impl Argument {
                     EleLevel::Base,
                     format!("{id_prefix}/desc_indicator#{}", &name),
                     area,
-                    Some(EleOptions::default().set_action(ActiveAction::ShowArguDesc(name))),
+                    Some(EleOptions::new(true).set_action(ActiveAction::ShowArguDesc(name))),
                 );
             });
         }
@@ -194,11 +194,12 @@ impl Argument {
                 .style(Style::default().bg(ratatui::style::Color::Black)),
             area,
         );
+        let name = self.name.clone();
         ctx.push(move |eles| {
             on_event_ele(
                 eles,
                 EleLevel::Base,
-                format!(""),
+                format!("argu/input#{}", name),
                 area,
                 Some(EleOptions::new(true).set_input_id(&input_id)),
             )
@@ -214,12 +215,12 @@ impl Argument {
         path: &[String],
         theme: EntryThemeRef,
     ) {
-        root.render_widget(
-            Block::new()
-                .borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT)
-                .border_style(theme.clone().argu_wrapper_border_style()),
-            area,
-        );
+        let wrapper = Block::new()
+            .borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT)
+            .border_style(theme.clone().argu_wrapper_border_style());
+        let content_area = wrapper.inner(area);
+        root.render_widget(wrapper, area);
+        let area = content_area;
 
         let layouts = Layout::default()
             .constraints([
@@ -247,12 +248,8 @@ impl Argument {
             constraints.push(ratatui::layout::Constraint::Length(2));
         }
 
-        let layouts = Layout::new(ratatui::layout::Direction::Vertical, constraints).split(
-            area.inner(Margin {
-                horizontal: 1,
-                vertical: 0,
-            }),
-        );
+        let layouts = Layout::new(ratatui::layout::Direction::Vertical, constraints)
+            .split(area.inner(uiconsts::MARGIN));
         let mut lidx: usize = 0;
 
         for vidx in 0..input_count {

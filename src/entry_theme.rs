@@ -45,7 +45,7 @@ impl EntryTheme {
     }
 
     pub(crate) fn argu_label_add_value_token(&self) -> &'static str {
-        return "[+]";
+        return "<+++>";
     }
 
     pub(crate) fn argu_label_add_value_style(&self) -> Style {

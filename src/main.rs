@@ -20,7 +20,11 @@ fn main() -> Result<(), String> {
             .append(true)
             .open(entry.log.unwrap_or("./debug.log".to_string()))
             .expect("failed to create log file");
-        tracing_subscriber::fmt().with_writer(file).init();
+        tracing_subscriber::fmt()
+            .with_line_number(true)
+            .with_file(true)
+            .with_writer(file)
+            .init();
     }
 
     let cmdpath = utils::find_executable(&entry.cmd);

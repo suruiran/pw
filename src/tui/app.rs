@@ -34,7 +34,6 @@ pub(crate) struct UIApp {
     pub(crate) model_state: Rc<RefCell<ModelState>>,
     pub(crate) theme: EntryThemeRef,
 
-    pub(crate) evt: Option<Event>,
     pub(crate) focused: Option<(i32, usize)>,
 
     pub(crate) mouse_enabled: bool,
@@ -147,15 +146,29 @@ pub(crate) fn get_current_schema<'a>(
 // render
 impl UIApp {
     fn run(&mut self, terminal: &mut DefaultTerminal) -> std::io::Result<()> {
+        let mut changed = true;
         loop {
-            let state = Rc::new(self.current_ui_state());
-            self.layers.borrow_mut().clear();
-            terminal.draw(|frame| self.render(frame, state.clone()))?;
-            self.evt = Some(crossterm::event::read()?);
-            if !self.react(terminal.size()?) {
-                return Ok(());
+            if changed {
+                self.layers.borrow_mut().clear();
+
+                let state = Rc::new(self.current_ui_state());
+                self.prev_path = Some(state.path.clone());
+                terminal.draw(|frame| self.render(frame, state.clone()))?;
             }
-            self.prev_path = Some(state.path.clone());
+
+            match self.react(crossterm::event::read()?, terminal.size()?) {
+                super::event::EvtReturn::Ignore => {
+                    changed = false;
+                    continue;
+                }
+                super::event::EvtReturn::Ok => {
+                    changed = true;
+                    continue;
+                }
+                super::event::EvtReturn::Exit => {
+                    return Ok(());
+                }
+            }
         }
     }
 
@@ -288,7 +301,6 @@ pub fn run(cmd: schema::Command) -> Result<Vec<String>, String> {
     let mut app = UIApp {
         cmd: Rc::new(cmd),
         model_state: Default::default(),
-        evt: None,
         mouse_enabled: crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)
             .is_ok(),
         renderctx: Default::default(),

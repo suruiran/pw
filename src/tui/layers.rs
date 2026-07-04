@@ -95,12 +95,39 @@ impl UILayers {
     }
 
     pub(crate) fn adjust_base_layer(&mut self, scrollview: ScrollViewInfoRef) {
-        let offset = scrollview.borrow().as_ref().unwrap().state.offset();
-        self.base.iter_mut().for_each(|ele| {
-            ele.area.x += offset.x;
-            ele.area.y += offset.y;
+        if self.top_level() != EleLevel::Base {
+            return;
+        }
+        let scrollviewinfo = scrollview.borrow();
+        if scrollviewinfo.is_none() {
+            return;
+        }
+        let scrollviewinfo = scrollviewinfo.as_ref().unwrap();
 
-            tracing::info!("{} {:?} {}", &ele.id, ele.area, offset);
+        let pos = scrollviewinfo.area.as_position();
+        let offset = scrollviewinfo.state.offset();
+
+        self.base.iter_mut().for_each(|ele| {
+            if let Some(opts) = ele.opts.as_ref() {
+                if !opts.in_scroll_view {
+                    return;
+                }
+            } else {
+                return;
+            }
+
+            let x = ele.area.x as i32 + pos.x as i32;
+            if x < 0 || x > u16::MAX as i32 {
+                ele.area.width = 0;
+                return;
+            }
+            let y = ele.area.y as i32 - offset.y as i32;
+            if y < 0 || y > u16::MAX as i32 {
+                ele.area.width = 0;
+                return;
+            }
+            ele.area.x = x as u16;
+            ele.area.y = y as u16;
         });
     }
 

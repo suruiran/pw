@@ -1,8 +1,12 @@
 use bitflags::bitflags;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent};
-use ratatui::layout::{Position, Rect, Size};
+use ratatui::layout::{Position, Size};
 
-use crate::tui::{app::UIApp, eleinfo::Element, layers::EleLevel};
+use crate::tui::{
+    app::UIApp,
+    eleinfo::Element,
+    layers::{EleLevel, UILayers, UILayersRef},
+};
 
 bitflags! {
     #[derive(Debug, Default)]
@@ -20,6 +24,13 @@ pub(crate) enum ChangeFocusAction {
     Horizontal(i8),
     Vertical(i8),
     Index(i8),
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) enum EvtReturn {
+    Ignore,
+    Ok,
+    Exit,
 }
 
 impl UIApp {
@@ -58,40 +69,40 @@ impl UIApp {
 
     fn do_change_focus(&self, action: ChangeFocusAction) {}
 
-    fn on_key_evt(&self, evt: KeyEvent, eles: Vec<&Element>) -> bool {
+    fn on_key_evt(&self, evt: KeyEvent, vpsize: Size) -> EvtReturn {
         if evt.is_release() {
-            return true;
+            return EvtReturn::Ignore;
         }
         match evt.code {
             KeyCode::Esc => {
-                return false;
+                return EvtReturn::Exit;
             }
             KeyCode::Char(code) => {
                 if evt.modifiers.contains(KeyModifiers::CONTROL) {
                     match code {
                         'c' | 'z' => {
-                            return false;
+                            return EvtReturn::Exit;
                         }
                         _ => {}
                     }
                 }
-                return true;
+                return EvtReturn::Ignore;
             }
             KeyCode::Down => {
                 self.do_change_focus(ChangeFocusAction::Vertical(1));
-                return true;
+                return EvtReturn::Ok;
             }
             KeyCode::Up => {
                 self.do_change_focus(ChangeFocusAction::Vertical(-1));
-                return true;
+                return EvtReturn::Ok;
             }
             KeyCode::Left => {
                 self.do_change_focus(ChangeFocusAction::Horizontal(-1));
-                return true;
+                return EvtReturn::Ok;
             }
             KeyCode::Right => {
                 self.do_change_focus(ChangeFocusAction::Horizontal(1));
-                return true;
+                return EvtReturn::Ok;
             }
             KeyCode::Tab => {
                 if evt.modifiers.contains(KeyModifiers::SHIFT) {
@@ -99,26 +110,26 @@ impl UIApp {
                 } else {
                     self.do_change_focus(ChangeFocusAction::Index(1));
                 }
-                return true;
+                return EvtReturn::Ok;
             }
             KeyCode::PageUp => {
                 self.do_scroll(ScrollAction::Up | ScrollAction::ByPage);
-                return true;
+                return EvtReturn::Ok;
             }
             KeyCode::PageDown => {
                 self.do_scroll(ScrollAction::Down | ScrollAction::ByPage);
-                return true;
+                return EvtReturn::Ok;
             }
             KeyCode::Home => {
                 self.do_scroll(ScrollAction::ToTop);
-                return true;
+                return EvtReturn::Ok;
             }
             KeyCode::End => {
                 self.do_scroll(ScrollAction::ToBottom);
-                return true;
+                return EvtReturn::Ok;
             }
             _ => {
-                return true;
+                return EvtReturn::Ignore;
             }
         }
     }
@@ -127,32 +138,49 @@ impl UIApp {
         return eles.into_iter().filter(|e| e.area.contains(pos)).collect();
     }
 
-    fn on_mouse_evt(&self, evt: MouseEvent, eles: Vec<&Element>) -> bool {
+    fn with_focusable<R>(&self, vpsize: Size, f: impl FnOnce(Vec<&Element>) -> R) -> R {
+        {
+            let mut layers = self.layers.borrow_mut();
+            layers.adjust_base_layer(self.scrollview.clone());
+        }
+        let layers = self.layers.borrow();
+        let eles = layers.all_focusable(vpsize);
+        return f(eles);
+    }
+
+    fn on_mouse_evt(&self, evt: MouseEvent, vpsize: Size) -> EvtReturn {
         match evt.kind {
             crossterm::event::MouseEventKind::Down(btn) => {
                 match btn {
                     crossterm::event::MouseButton::Left => {}
                     _ => {
-                        return true;
+                        return EvtReturn::Ignore;
                     }
                 }
-
-                let eles = Self::find_ele_by_pos(
-                    eles,
-                    Position {
-                        x: evt.column,
-                        y: evt.row,
-                    },
-                );
-                tracing::info!("CLICK {} {} {:?}", evt.column, evt.row, eles);
+                return self.with_focusable(vpsize, |eles| {
+                    let eles = Self::find_ele_by_pos(
+                        eles,
+                        Position {
+                            x: evt.column,
+                            y: evt.row,
+                        },
+                    );
+                    tracing::info!(
+                        "CLICK {} {} {:?}",
+                        evt.column,
+                        evt.row,
+                        eles.iter().map(|v| v.id.clone()).collect::<Vec<_>>(),
+                    );
+                    return EvtReturn::Ok;
+                });
             }
-            crossterm::event::MouseEventKind::Moved => {}
             crossterm::event::MouseEventKind::ScrollDown => {
                 let mut action = ScrollAction::Down;
                 if evt.modifiers.contains(KeyModifiers::ALT) {
                     action |= ScrollAction::ByPage;
                 }
                 self.do_scroll(action);
+                return EvtReturn::Ok;
             }
             crossterm::event::MouseEventKind::ScrollUp => {
                 let mut action = ScrollAction::Up;
@@ -160,30 +188,26 @@ impl UIApp {
                     action |= ScrollAction::ByPage;
                 }
                 self.do_scroll(action);
+                return EvtReturn::Ok;
             }
-            _ => {}
+            _ => return EvtReturn::Ignore,
         }
-        return true;
     }
 
-    pub(crate) fn react(&self, vpsize: Size) -> bool {
-        let top_level = { self.layers.borrow().top_level() };
-        if top_level == EleLevel::Base {
-            let mut layers = self.layers.borrow_mut();
-            layers.adjust_base_layer(self.scrollview.clone());
+    pub(crate) fn react(&self, evt: Event, vpsize: Size) -> EvtReturn {
+        match evt {
+            Event::Mouse(evt) => {
+                return self.on_mouse_evt(evt, vpsize);
+            }
+            Event::Key(evt) => {
+                return self.on_key_evt(evt, vpsize);
+            }
+            Event::Resize(_, _) => {
+                return EvtReturn::Ok;
+            }
+            _ => {
+                return EvtReturn::Ignore;
+            }
         }
-        let layers = self.layers.borrow();
-        let eles = layers.all_focusable(vpsize);
-        // after this, we can not change `self.layers`.
-
-        if let Some(Event::Key(keyevt)) = self.evt {
-            return self.on_key_evt(keyevt, eles);
-        }
-        if self.mouse_enabled
-            && let Some(Event::Mouse(mouseevt)) = self.evt
-        {
-            return self.on_mouse_evt(mouseevt, eles);
-        }
-        return true;
     }
 }
