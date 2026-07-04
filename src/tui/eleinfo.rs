@@ -1,7 +1,11 @@
+use std::fmt::Debug;
+
 use ratatui::{
     Frame,
     layout::{Rect, Size},
 };
+
+use crate::tui::elestemp::EleLevel;
 
 #[derive(Debug)]
 pub(crate) enum ActiveAction {
@@ -46,11 +50,30 @@ impl EleOptions {
     }
 }
 
+#[derive(Debug, Default)]
+pub(crate) struct EleIndex {
+    pub(crate) level: EleLevel,
+    pub(crate) idx: usize,
+}
+
+#[derive(Default)]
 pub(crate) struct EleTempInfo {
+    pub(crate) index: EleIndex,
     pub(crate) id: String,
     pub(crate) render_fn: Option<Box<dyn FnOnce(&mut Frame, Rect)>>,
     pub(crate) area: Rect,
     pub(crate) opts: Option<EleOptions>,
+}
+
+impl Debug for EleTempInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EleTempInfo")
+            .field("index", &self.index)
+            .field("id", &self.id)
+            .field("area", &self.area)
+            .field("opts", &self.opts)
+            .finish()
+    }
 }
 
 impl EleTempInfo {

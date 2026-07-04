@@ -11,9 +11,13 @@ use crate::{
     entry_theme::EntryThemeRef,
     model_state::{ModelState, get_argvs},
     schema::Argument,
-    ui::{LEVEL_BASE, on_event_ele},
-    ui_content::RenderCtx,
-    ui_eleinfo::EleOptions,
+    tui::{
+        consts::uiconsts,
+        content::RenderCtx,
+        eleinfo::{ActiveAction, EleOptions},
+        elestemp::EleLevel,
+        ui::on_event_ele,
+    },
 };
 
 impl Argument {
@@ -28,7 +32,7 @@ impl Argument {
         if vsize < 1 {
             vsize = 1;
         }
-        return height + (vsize - 1) * 3;
+        return height + (vsize - 1) * uiconsts::ARGU_INPUT_HEIGHT;
     }
 
     fn render_label(
@@ -147,12 +151,10 @@ impl Argument {
             ctx.push(move |eles| {
                 on_event_ele(
                     eles,
-                    LEVEL_BASE,
+                    EleLevel::Base,
                     format!("{id_prefix}/add_val#{}", name),
                     area,
-                    Some(
-                        EleOptions::default().set_action(crate::ui_eleinfo::ActiveAction::AddArgv),
-                    ),
+                    Some(EleOptions::default().set_action(ActiveAction::AddArgv)),
                 );
             });
         }
@@ -162,13 +164,10 @@ impl Argument {
             ctx.push(move |eles| {
                 on_event_ele(
                     eles,
-                    LEVEL_BASE,
+                    EleLevel::Base,
                     format!("{id_prefix}/desc_indicator#{}", &name),
                     area,
-                    Some(
-                        EleOptions::default()
-                            .set_action(crate::ui_eleinfo::ActiveAction::ShowArguDesc(name)),
-                    ),
+                    Some(EleOptions::default().set_action(ActiveAction::ShowArguDesc(name))),
                 );
             });
         }
@@ -198,7 +197,7 @@ impl Argument {
         ctx.push(move |eles| {
             on_event_ele(
                 eles,
-                LEVEL_BASE,
+                EleLevel::Base,
                 format!(""),
                 area,
                 Some(EleOptions::new(true).set_input_id(&input_id)),

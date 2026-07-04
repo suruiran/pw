@@ -1,13 +1,17 @@
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
-use ratatui::layout::{Layout, Margin, Rect, Size};
+use ratatui::layout::{Layout, Rect, Size};
 use tui_scrollview::ScrollView;
 
-use crate::ui::{ElesTempRef, LEVEL_BASE, ScrollViewInfo, UIApp, UIState, get_current_schema};
+use crate::tui::{
+    ui::{ScrollViewInfo, UIApp, UIState, get_current_schema},
+    consts::uiconsts,
+    elestemp::{EleLevel, ElesTempRef},
+};
 
 impl UIApp {
     pub(crate) fn render_content(&mut self, container: Rect, uistate: Rc<UIState>) {
-        let container = container.inner(Margin::new(1, 0));
+        let container = container.inner(uiconsts::MARGIN);
 
         let wrapper_id = "content/scrollview".to_string();
 
@@ -37,7 +41,7 @@ impl UIApp {
 
         let ctx = self.render_ctx.clone();
         self.on_state_ele(
-            LEVEL_BASE,
+            EleLevel::Base,
             wrapper_id.clone(),
             Box::new(move |f, a: Rect| {
                 let schema = get_current_schema(&root, &uistate.path);
@@ -54,7 +58,9 @@ impl UIApp {
                 }
                 if schema.has_subs() {
                     height += 2;
-                    constraints.push(ratatui::layout::Constraint::Length(2));
+                    constraints.push(ratatui::layout::Constraint::Length(
+                        uiconsts::ARGU_INPUT_HEIGHT,
+                    ));
                 }
                 let size = Size::new(container.width, height as u16);
 
@@ -67,12 +73,8 @@ impl UIApp {
                 let mut scrollview = ScrollView::new(size)
                     .horizontal_scrollbar_visibility(tui_scrollview::ScrollbarVisibility::Never);
 
-                let layouts = Layout::new(ratatui::layout::Direction::Vertical, constraints).split(
-                    scrollview.area().inner(Margin {
-                        horizontal: 1,
-                        vertical: 0,
-                    }),
-                );
+                let layouts = Layout::new(ratatui::layout::Direction::Vertical, constraints)
+                    .split(scrollview.area().inner(uiconsts::MARGIN));
 
                 let mut ctx = ctx.borrow_mut();
 

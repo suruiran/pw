@@ -7,13 +7,7 @@ mod model_state;
 mod repl;
 mod schema;
 mod schema_command;
-mod ui;
-mod ui_argv;
-mod ui_argv_str;
-mod ui_content;
-mod ui_eleinfo;
-mod ui_event;
-mod ui_helper;
+mod tui;
 mod utils;
 
 fn main() -> Result<(), String> {
@@ -112,7 +106,7 @@ fn main() -> Result<(), String> {
         }
     }
 
-    match ui::ui(schema) {
+    match tui::run(schema) {
         Ok(args) => {
             if args.len() < 1 {
                 return Err("unreachable code: empty output args".to_string());

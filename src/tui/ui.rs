@@ -13,14 +13,12 @@ use crate::{
     model_state::ModelState,
     repl::repl,
     schema::{self, Argument},
-    ui_content::RenderCtx,
-    ui_eleinfo::{EleOptions, EleTempInfo},
-    utils::FastMap,
+    tui::{
+        content::RenderCtx,
+        eleinfo::{EleIndex, EleOptions, EleTempInfo},
+        elestemp::{EleLevel, ElesTempRef},
+    },
 };
-
-pub(crate) const LEVEL_BASE: i32 = 0;
-pub(crate) const LEVEL_FLOATING: i32 = 10000;
-pub(crate) const LEVEL_NOTIFY: i32 = 20000;
 
 #[derive(Debug, Default)]
 pub(crate) struct ScrollViewInfo {
@@ -29,14 +27,13 @@ pub(crate) struct ScrollViewInfo {
     pub(crate) state: ScrollViewState,
 }
 
-pub(crate) type ElesTempRef = Rc<RefCell<FastMap<i32, Vec<EleTempInfo>>>>;
-
 pub(crate) struct UIApp {
     pub(crate) cmd: Rc<schema::Command>,
     pub(crate) model_state: Rc<RefCell<ModelState>>,
     pub(crate) theme: EntryThemeRef,
 
     pub(crate) evt: Option<Event>,
+    pub(crate) focused: Option<(i32, usize)>,
 
     pub(crate) mouse_enabled: bool,
 
@@ -173,7 +170,7 @@ impl UIApp {
 
         self.render_content(layout[0], uistate.clone());
         self.render_footer(layout[1], uistate.clone());
-        self._render(frame);
+        self.eles_temp.borrow_mut().render(frame);
         self.render_ctx.borrow_mut().drain(self.eles_temp.clone());
     }
 
@@ -206,7 +203,7 @@ impl UIApp {
         for (idx, name) in uistate.path.iter().enumerate() {
             let id = format!("footer/path/{}", idx);
             self.on_plain_ele(
-                LEVEL_BASE,
+                EleLevel::Base,
                 id.clone(),
                 Paragraph::new(name.clone()),
                 layout[idx],
@@ -219,13 +216,14 @@ impl UIApp {
 
     pub fn on_state_ele(
         &mut self,
-        level: i32,
+        level: EleLevel,
         id: String,
         render: Box<dyn FnOnce(&mut Frame, Rect)>,
         area: Rect,
         opts: Option<EleOptions>,
     ) {
         let eletemp = EleTempInfo {
+            index: EleIndex::default(),
             id,
             render_fn: Some(render),
             area,
@@ -236,7 +234,7 @@ impl UIApp {
 
     pub fn on_plain_ele<W: Widget + 'static>(
         &mut self,
-        level: i32,
+        level: EleLevel,
         id: String,
         widget: W,
         area: Rect,
@@ -252,22 +250,6 @@ impl UIApp {
             opts,
         );
     }
-
-    fn _render(&mut self, frame: &mut Frame) {
-        let mut eles = self.eles_temp.borrow_mut();
-        let mut levels = eles.keys().map(|v| *v).collect::<Vec<_>>();
-        levels.sort();
-
-        for level in levels.iter() {
-            if let Some(eles) = eles.get_mut(level) {
-                for ele in eles {
-                    if let Some(rf) = ele.render_fn.take() {
-                        rf(frame, ele.area);
-                    }
-                }
-            }
-        }
-    }
 }
 
 impl Drop for UIApp {
@@ -279,7 +261,7 @@ impl Drop for UIApp {
     }
 }
 
-pub(crate) fn ui(cmd: schema::Command) -> Result<Vec<String>, String> {
+pub fn run(cmd: schema::Command) -> Result<Vec<String>, String> {
     if cmd.is_empty() {
         return Ok(vec![cmd.exe]);
     }
@@ -314,6 +296,7 @@ pub(crate) fn ui(cmd: schema::Command) -> Result<Vec<String>, String> {
         scrollview: Default::default(),
         prev_path: None,
         theme: Default::default(),
+        focused: Default::default(),
     };
     match app.run(&mut terminal) {
         Ok(_) => {}
@@ -326,7 +309,7 @@ pub(crate) fn ui(cmd: schema::Command) -> Result<Vec<String>, String> {
 
 pub(crate) fn on_event_ele(
     eles: ElesTempRef,
-    level: i32,
+    level: EleLevel,
     id: String,
     area: Rect,
     opts: Option<EleOptions>,
@@ -336,12 +319,12 @@ pub(crate) fn on_event_ele(
         render_fn: None,
         area,
         opts,
+        index: EleIndex::default(),
     };
     on_ele(eles, level, eletemp);
 }
 
-fn on_ele(eles: Rc<RefCell<FastMap<i32, Vec<EleTempInfo>>>>, level: i32, ele: EleTempInfo) {
+fn on_ele(eles: ElesTempRef, level: EleLevel, ele: EleTempInfo) {
     let mut eles = eles.borrow_mut();
-    let leveleles = eles.entry(level).or_insert(vec![]);
-    leveleles.push(ele);
+    eles.push(level, ele);
 }

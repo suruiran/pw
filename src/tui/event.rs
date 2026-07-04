@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 
-use crate::ui::UIApp;
+use crate::tui::ui::UIApp;
 
 bitflags! {
     #[derive(Debug, Default)]
@@ -129,7 +129,6 @@ impl UIApp {
     fn on_mouse_evt(&mut self, evt: MouseEvent) -> bool {
         match evt.kind {
             crossterm::event::MouseEventKind::Down(mouse_button) => {}
-            crossterm::event::MouseEventKind::Drag(mouse_button) => {}
             crossterm::event::MouseEventKind::Moved => {}
             crossterm::event::MouseEventKind::ScrollDown => {
                 let mut action = ScrollAction::Down;

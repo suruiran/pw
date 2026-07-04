@@ -22,3 +22,4 @@ which = "8.0.4"
 tui-input = { version = "*", features = [
     "crossterm",
 ], default-features = false }
+inquire = "0.9.4"
