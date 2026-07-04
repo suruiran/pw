@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Rect, Size},
 };
 
-use crate::tui::elestemp::EleLevel;
+use crate::tui::layers::EleLevel;
 
 #[derive(Debug)]
 pub(crate) enum ActiveAction {
@@ -57,7 +57,7 @@ pub(crate) struct EleIndex {
 }
 
 #[derive(Default)]
-pub(crate) struct EleTempInfo {
+pub(crate) struct Element {
     pub(crate) index: EleIndex,
     pub(crate) id: String,
     pub(crate) render_fn: Option<Box<dyn FnOnce(&mut Frame, Rect)>>,
@@ -65,7 +65,7 @@ pub(crate) struct EleTempInfo {
     pub(crate) opts: Option<EleOptions>,
 }
 
-impl Debug for EleTempInfo {
+impl Debug for Element {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("EleTempInfo")
             .field("index", &self.index)
@@ -76,7 +76,7 @@ impl Debug for EleTempInfo {
     }
 }
 
-impl EleTempInfo {
+impl Element {
     pub(crate) fn responsive(&self) -> bool {
         if let Some(opts) = self.opts.as_ref() {
             match opts.on_active {

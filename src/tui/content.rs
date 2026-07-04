@@ -4,9 +4,9 @@ use ratatui::layout::{Layout, Rect, Size};
 use tui_scrollview::ScrollView;
 
 use crate::tui::{
-    ui::{ScrollViewInfo, UIApp, UIState, get_current_schema},
+    app::{ScrollViewInfo, UIApp, UIState, get_current_schema},
     consts::uiconsts,
-    elestemp::{EleLevel, ElesTempRef},
+    layers::{EleLevel, UILayersRef},
 };
 
 impl UIApp {
@@ -39,7 +39,7 @@ impl UIApp {
         let model_state = self.model_state.clone();
         let theme = self.theme.clone();
 
-        let ctx = self.render_ctx.clone();
+        let ctx = self.renderctx.clone();
         self.on_state_ele(
             EleLevel::Base,
             wrapper_id.clone(),
@@ -101,16 +101,16 @@ impl UIApp {
 
 #[derive(Default)]
 pub(crate) struct RenderCtx {
-    lazys: Vec<Box<dyn FnOnce(ElesTempRef) + 'static>>,
+    lazys: Vec<Box<dyn FnOnce(UILayersRef) + 'static>>,
 }
 
 impl RenderCtx {
-    pub(crate) fn push<F: FnOnce(ElesTempRef) + 'static>(&mut self, f: F) -> &mut Self {
+    pub(crate) fn push<F: FnOnce(UILayersRef) + 'static>(&mut self, f: F) -> &mut Self {
         self.lazys.push(Box::new(f));
         return self;
     }
 
-    pub(crate) fn drain(&mut self, eles: ElesTempRef) {
+    pub(crate) fn drain(&mut self, eles: UILayersRef) {
         for f in std::mem::take(&mut self.lazys) {
             f(eles.clone());
         }

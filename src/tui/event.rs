@@ -1,7 +1,8 @@
 use bitflags::bitflags;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent};
+use ratatui::layout::{Position, Rect, Size};
 
-use crate::tui::ui::UIApp;
+use crate::tui::{app::UIApp, eleinfo::Element, layers::EleLevel};
 
 bitflags! {
     #[derive(Debug, Default)]
@@ -22,7 +23,7 @@ pub(crate) enum ChangeFocusAction {
 }
 
 impl UIApp {
-    fn do_scroll(&mut self, action: ScrollAction) {
+    fn do_scroll(&self, action: ScrollAction) {
         let mut scrollview = self.scrollview.borrow_mut();
         if scrollview.is_none() {
             return;
@@ -55,9 +56,9 @@ impl UIApp {
         scrollview_state.scroll_down();
     }
 
-    fn do_change_focus(&mut self, action: ChangeFocusAction) {}
+    fn do_change_focus(&self, action: ChangeFocusAction) {}
 
-    fn on_key_evt(&mut self, evt: KeyEvent) -> bool {
+    fn on_key_evt(&self, evt: KeyEvent, eles: Vec<&Element>) -> bool {
         if evt.is_release() {
             return true;
         }
@@ -122,13 +123,29 @@ impl UIApp {
         }
     }
 
-    fn on_mouse_ele(&mut self, evt: MouseEvent, id: String) -> bool {
-        return true;
+    fn find_ele_by_pos(eles: Vec<&Element>, pos: Position) -> Vec<&Element> {
+        return eles.into_iter().filter(|e| e.area.contains(pos)).collect();
     }
 
-    fn on_mouse_evt(&mut self, evt: MouseEvent) -> bool {
+    fn on_mouse_evt(&self, evt: MouseEvent, eles: Vec<&Element>) -> bool {
         match evt.kind {
-            crossterm::event::MouseEventKind::Down(mouse_button) => {}
+            crossterm::event::MouseEventKind::Down(btn) => {
+                match btn {
+                    crossterm::event::MouseButton::Left => {}
+                    _ => {
+                        return true;
+                    }
+                }
+
+                let eles = Self::find_ele_by_pos(
+                    eles,
+                    Position {
+                        x: evt.column,
+                        y: evt.row,
+                    },
+                );
+                tracing::info!("CLICK {} {} {:?}", evt.column, evt.row, eles);
+            }
             crossterm::event::MouseEventKind::Moved => {}
             crossterm::event::MouseEventKind::ScrollDown => {
                 let mut action = ScrollAction::Down;
@@ -149,14 +166,23 @@ impl UIApp {
         return true;
     }
 
-    pub(crate) fn react(&mut self) -> bool {
+    pub(crate) fn react(&self, vpsize: Size) -> bool {
+        let top_level = { self.layers.borrow().top_level() };
+        if top_level == EleLevel::Base {
+            let mut layers = self.layers.borrow_mut();
+            layers.adjust_base_layer(self.scrollview.clone());
+        }
+        let layers = self.layers.borrow();
+        let eles = layers.all_focusable(vpsize);
+        // after this, we can not change `self.layers`.
+
         if let Some(Event::Key(keyevt)) = self.evt {
-            return self.on_key_evt(keyevt);
+            return self.on_key_evt(keyevt, eles);
         }
         if self.mouse_enabled
             && let Some(Event::Mouse(mouseevt)) = self.evt
         {
-            return self.on_mouse_evt(mouseevt);
+            return self.on_mouse_evt(mouseevt, eles);
         }
         return true;
     }

@@ -15,8 +15,8 @@ use crate::{
     schema::{self, Argument},
     tui::{
         content::RenderCtx,
-        eleinfo::{EleIndex, EleOptions, EleTempInfo},
-        elestemp::{EleLevel, ElesTempRef},
+        eleinfo::{EleIndex, EleOptions, Element},
+        layers::{EleLevel, UILayersRef},
     },
 };
 
@@ -26,6 +26,8 @@ pub(crate) struct ScrollViewInfo {
     pub(crate) size: Size,
     pub(crate) state: ScrollViewState,
 }
+
+pub(crate) type ScrollViewInfoRef = Rc<RefCell<Option<ScrollViewInfo>>>;
 
 pub(crate) struct UIApp {
     pub(crate) cmd: Rc<schema::Command>,
@@ -37,9 +39,9 @@ pub(crate) struct UIApp {
 
     pub(crate) mouse_enabled: bool,
 
-    pub(crate) render_ctx: Rc<RefCell<RenderCtx>>,
-    pub(crate) eles_temp: ElesTempRef,
-    pub(crate) scrollview: Rc<RefCell<Option<ScrollViewInfo>>>,
+    pub(crate) renderctx: Rc<RefCell<RenderCtx>>,
+    pub(crate) layers: UILayersRef,
+    pub(crate) scrollview: ScrollViewInfoRef,
     pub(crate) prev_path: Option<Vec<String>>,
 }
 
@@ -147,14 +149,12 @@ impl UIApp {
     fn run(&mut self, terminal: &mut DefaultTerminal) -> std::io::Result<()> {
         loop {
             let state = Rc::new(self.current_ui_state());
-            self.eles_temp.borrow_mut().clear();
-
+            self.layers.borrow_mut().clear();
             terminal.draw(|frame| self.render(frame, state.clone()))?;
             self.evt = Some(crossterm::event::read()?);
-            if !self.react() {
+            if !self.react(terminal.size()?) {
                 return Ok(());
             }
-
             self.prev_path = Some(state.path.clone());
         }
     }
@@ -170,8 +170,8 @@ impl UIApp {
 
         self.render_content(layout[0], uistate.clone());
         self.render_footer(layout[1], uistate.clone());
-        self.eles_temp.borrow_mut().render(frame);
-        self.render_ctx.borrow_mut().drain(self.eles_temp.clone());
+        self.layers.borrow_mut().render(frame);
+        self.renderctx.borrow_mut().drain(self.layers.clone());
     }
 
     fn render_footer(&mut self, container: Rect, uistate: Rc<UIState>) {
@@ -222,14 +222,14 @@ impl UIApp {
         area: Rect,
         opts: Option<EleOptions>,
     ) {
-        let eletemp = EleTempInfo {
+        let eletemp = Element {
             index: EleIndex::default(),
             id,
             render_fn: Some(render),
             area,
             opts,
         };
-        on_ele(self.eles_temp.clone(), level, eletemp);
+        on_ele(self.layers.clone(), level, eletemp);
     }
 
     pub fn on_plain_ele<W: Widget + 'static>(
@@ -291,8 +291,8 @@ pub fn run(cmd: schema::Command) -> Result<Vec<String>, String> {
         evt: None,
         mouse_enabled: crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)
             .is_ok(),
-        render_ctx: Default::default(),
-        eles_temp: Default::default(),
+        renderctx: Default::default(),
+        layers: Default::default(),
         scrollview: Default::default(),
         prev_path: None,
         theme: Default::default(),
@@ -308,13 +308,13 @@ pub fn run(cmd: schema::Command) -> Result<Vec<String>, String> {
 }
 
 pub(crate) fn on_event_ele(
-    eles: ElesTempRef,
+    eles: UILayersRef,
     level: EleLevel,
     id: String,
     area: Rect,
     opts: Option<EleOptions>,
 ) {
-    let eletemp = EleTempInfo {
+    let eletemp = Element {
         id,
         render_fn: None,
         area,
@@ -324,7 +324,7 @@ pub(crate) fn on_event_ele(
     on_ele(eles, level, eletemp);
 }
 
-fn on_ele(eles: ElesTempRef, level: EleLevel, ele: EleTempInfo) {
+fn on_ele(eles: UILayersRef, level: EleLevel, ele: Element) {
     let mut eles = eles.borrow_mut();
     eles.push(level, ele);
 }
