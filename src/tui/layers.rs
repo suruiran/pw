@@ -1,12 +1,10 @@
-use std::{cell::RefCell, rc::Rc};
-
 use ratatui::{
     Frame,
     layout::{Rect, Size},
 };
 
 use crate::tui::{
-    app::ScrollViewInfoRef,
+    app::ScrollViewInfo,
     element::{EleIndex, Element},
 };
 
@@ -31,8 +29,6 @@ pub(crate) struct UILayers {
     adjusted: bool,
 }
 
-pub(crate) type UILayersRef = Rc<RefCell<UILayers>>;
-
 impl UILayers {
     pub(crate) fn clear(&mut self) {
         self.base.clear();
@@ -53,12 +49,13 @@ impl UILayers {
         eles.push(ele);
     }
 
-    pub(crate) fn render(&mut self, frame: &mut Frame) {
+    pub(crate) fn render(&mut self, frame: &mut Frame, scrollviewinfo: &Option<ScrollViewInfo>) {
+        let mainbuf = frame.buffer_mut();
         macro_rules! call {
             ($eles: expr) => {
                 for ele in $eles.iter_mut() {
-                    if let Some(rf) = ele.render_fn.take() {
-                        rf(frame, ele.area);
+                    if let Some(buf) = ele.buf.take() {
+                        mainbuf.merge(&buf);
                     }
                 }
             };
@@ -66,6 +63,8 @@ impl UILayers {
         call!(self.base);
         call!(self.floating);
         call!(self.notify);
+
+        self.adjust_base_layer(scrollviewinfo);
     }
 }
 
@@ -94,7 +93,7 @@ impl UILayers {
         return refs;
     }
 
-    pub(crate) fn adjust_base_layer(&mut self, scrollview: ScrollViewInfoRef) {
+    fn adjust_base_layer(&mut self, scrollviewinfo: &Option<ScrollViewInfo>) {
         if self.top_level() != EleLevel::Base {
             return;
         }
@@ -104,7 +103,6 @@ impl UILayers {
         }
         self.adjusted = true;
 
-        let scrollviewinfo = scrollview.borrow();
         if scrollviewinfo.is_none() {
             return;
         }

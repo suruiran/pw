@@ -1,9 +1,9 @@
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 use ratatui::{
     DefaultTerminal, Frame,
     layout::{Layout, Rect, Size},
-    widgets::{Paragraph, Widget},
+    widgets::Paragraph,
 };
 use tui_scrollview::ScrollViewState;
 
@@ -12,11 +12,7 @@ use crate::{
     model_state::ModelState,
     repl::repl,
     schema::{self, Argument},
-    tui::{
-        ctx::RenderCtx,
-        element::{EleOptions, Element},
-        layers::{EleLevel, UILayersRef},
-    },
+    tui::{ctx::RenderCtx, element::Element, layers::EleLevel},
 };
 
 #[derive(Debug, Default)]
@@ -26,17 +22,13 @@ pub(crate) struct ScrollViewInfo {
     pub(crate) state: ScrollViewState,
 }
 
-pub(crate) type ScrollViewInfoRef = Rc<RefCell<Option<ScrollViewInfo>>>;
-
 pub(crate) struct TUIApp {
     pub(crate) cmd: Rc<schema::Command>,
-    pub(crate) model_state: Rc<RefCell<ModelState>>,
+    pub(crate) model_state: ModelState,
     pub(crate) theme: EntryThemeRef,
     pub(crate) mouse_enabled: bool,
 
-    pub(crate) renderctx: Rc<RefCell<RenderCtx>>,
-    pub(crate) layers: UILayersRef,
-    pub(crate) scrollview: ScrollViewInfoRef,
+    pub(crate) ctx: RenderCtx,
 
     pub(crate) prev_path: Option<Vec<String>>,
 }
@@ -51,16 +43,10 @@ impl TUIApp {
                 crossterm::event::EnableMouseCapture
             )
             .is_ok(),
-            renderctx: Default::default(),
-            layers: Default::default(),
-            scrollview: Default::default(),
+            ctx: Default::default(),
             prev_path: None,
             theme: Default::default(),
         };
-        {
-            let mut ctx = app.renderctx.borrow_mut();
-            ctx.layers = Some(app.layers.clone());
-        }
         return app;
     }
 }
@@ -77,7 +63,7 @@ impl TUIApp {
         let mut path: Vec<String> = vec![current_cmd.exe.to_string()];
         let mut found_cmd: bool = false;
 
-        let model_state = self.model_state.borrow();
+        let model_state = &mut self.model_state;
 
         if let Some(cidx) = model_state.current {
             if cidx >= model_state.stack.len() {
@@ -101,17 +87,13 @@ impl TUIApp {
                 found_cmd = true;
             }
         }
-        drop(model_state);
 
         if !found_cmd {
-            let mut model_state = self.model_state.borrow_mut();
             model_state.stack = vec![Default::default()];
             model_state.current = Some(0);
 
             path = vec![current_cmd.exe.to_string()];
         }
-
-        let model_state = self.model_state.borrow();
 
         let mut current_argv_name: Option<String> = None;
         let current_cmd_with_val = &model_state.stack[model_state.current.unwrap()];
@@ -136,9 +118,6 @@ impl TUIApp {
         );
 
         if inputid != model_state.inputid {
-            drop(model_state);
-            let mut model_state = self.model_state.borrow_mut();
-
             model_state.inputid.clear();
             model_state.inputtemp.clear();
         }
@@ -170,14 +149,13 @@ impl TUIApp {
         let mut changed = true;
         loop {
             if changed {
-                self.layers.borrow_mut().clear();
+                self.ctx.clear();
 
                 let state = Rc::new(self.current_ui_state());
                 self.prev_path = Some(state.path.clone());
                 terminal.draw(|frame| self.render(frame, state.clone()))?;
 
-                let mut ctx = self.renderctx.borrow_mut();
-                if ctx.auto_focused(self, terminal.size()?) {
+                if self.ctx.auto_focused(terminal.size()?) {
                     continue;
                 }
             }
@@ -209,8 +187,8 @@ impl TUIApp {
 
         self.render_content(layout[0], uistate.clone());
         self.render_footer(layout[1], uistate.clone());
-        self.layers.borrow_mut().render(frame);
-        self.renderctx.borrow_mut().drain(self.layers.clone());
+
+        self.ctx.render(frame);
     }
 
     fn render_footer(&mut self, container: Rect, uistate: Rc<UIState>) {
@@ -240,50 +218,18 @@ impl TUIApp {
             .split(container);
 
         for (idx, name) in uistate.path.iter().enumerate() {
-            let id = format!("footer/path/{}", idx);
-            self.on_plain_ele(
+            let ele = Element::new(
                 EleLevel::Base,
-                id.clone(),
-                Paragraph::new(name.clone()),
+                &format!("footer/path/{}", idx),
                 layout[idx],
                 None,
-            );
+            )
+            .plain(Paragraph::new(name.clone()), false);
+            self.ctx.push(ele);
         }
     }
 
     fn render_footer_btns(&mut self, container: Rect, uistate: Rc<UIState>) {}
-
-    pub fn on_state_ele(
-        &mut self,
-        level: EleLevel,
-        id: String,
-        render: Box<dyn FnOnce(&mut Frame, Rect)>,
-        area: Rect,
-        opts: Option<EleOptions>,
-    ) {
-        let mut eletemp = Element::new(level, &id, area, opts);
-        eletemp.render_fn = Some(render);
-        on_ele(self.layers.clone(), eletemp);
-    }
-
-    pub fn on_plain_ele<W: Widget + 'static>(
-        &mut self,
-        level: EleLevel,
-        id: String,
-        widget: W,
-        area: Rect,
-        opts: Option<EleOptions>,
-    ) {
-        self.on_state_ele(
-            level,
-            id,
-            Box::new(move |f, a| {
-                f.render_widget(widget, a);
-            }),
-            area,
-            opts,
-        );
-    }
 }
 
 impl Drop for TUIApp {
@@ -327,9 +273,4 @@ pub fn run(cmd: schema::Command) -> Result<Vec<String>, String> {
         }
     }
     return Ok(vec![]);
-}
-
-fn on_ele(eles: UILayersRef, ele: Element) {
-    let mut eles = eles.borrow_mut();
-    eles.push(ele);
 }

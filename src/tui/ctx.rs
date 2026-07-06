@@ -1,46 +1,57 @@
-use std::{cell::RefCell, process::id, rc::Rc};
-
-use ratatui::layout::Size;
+use ratatui::{Frame, layout::Size};
 
 use crate::tui::{
-    app::TUIApp,
+    app::{ScrollViewInfo, TUIApp},
     element::{EleIndex, Element},
-    layers::UILayersRef,
+    layers::UILayers,
 };
 
 #[derive(Default)]
 pub(crate) struct RenderCtx {
-    lazys: Vec<Element>,
     focused: Option<EleIndex>,
-    pub(crate) layers: Option<UILayersRef>,
+    layers: UILayers,
+    scrollview: Option<ScrollViewInfo>,
 }
 
 impl RenderCtx {
     pub(crate) fn push(&mut self, ele: Element) -> &mut Self {
-        self.lazys.push(ele);
+        self.layers.push(ele);
         return self;
     }
 
-    pub(crate) fn drain(&mut self, eles: UILayersRef) {
-        let mut layers = eles.borrow_mut();
-        for ele in std::mem::take(&mut self.lazys) {
-            layers.push(ele);
-        }
+    pub(crate) fn clear(&mut self) {
+        self.layers.clear();
     }
 
-    pub(crate) fn auto_focused(&mut self, app: &TUIApp, vpsize: Size) -> bool {
+    pub(crate) fn render(&mut self, frame: &mut Frame) {
+        self.layers.render(frame, &self.scrollview);
+    }
+
+    pub(crate) fn with_scrollview_mut<R>(
+        &mut self,
+        f: impl FnOnce(&mut Option<ScrollViewInfo>) -> R,
+    ) -> R {
+        return f(&mut self.scrollview);
+    }
+
+    pub(crate) fn with_focusables<R>(&self, vpsize: Size, f: impl FnOnce(Vec<&Element>) -> R) -> R {
+        let eles = self.layers.all_focusable(vpsize);
+        return f(eles);
+    }
+
+    pub(crate) fn auto_focused(&mut self, vpsize: Size) -> bool {
         if self.focused.is_some() {
             return false;
         }
         let mut idx: Option<EleIndex> = None;
-        app.with_focusable(vpsize, |eles| {
-            let ele = eles
-                .into_iter()
-                .find(|v| v.opts.is_some() && v.opts.as_ref().unwrap().auto_focusable);
-            if let Some(ele) = ele {
-                idx = Some(ele.index.clone());
-            }
-        });
+        let ele = self
+            .layers
+            .all_focusable(vpsize)
+            .into_iter()
+            .find(|v| v.opts.is_some() && v.opts.as_ref().unwrap().auto_focusable);
+        if let Some(ele) = ele {
+            idx = Some(ele.index.clone());
+        }
         match idx {
             Some(idx) => {
                 tracing::info!("{:?}", &idx);
@@ -59,12 +70,7 @@ impl RenderCtx {
     ) -> Option<R> {
         match self.focused.as_ref() {
             Some(idx) => {
-                let layers = self
-                    .layers
-                    .as_ref()
-                    .expect("unreachable code: empty RenderCtx.layers")
-                    .borrow();
-                let ele = layers.get(idx);
+                let ele = self.layers.get(idx);
                 return Some(f(ele));
             }
             None => None,

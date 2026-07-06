@@ -1,6 +1,9 @@
 use std::fmt::Debug;
 
-use ratatui::{Frame, layout::Rect};
+use ratatui::{
+    layout::Rect,
+    widgets::{StatefulWidget, Widget},
+};
 
 use crate::tui::layers::EleLevel;
 
@@ -64,7 +67,7 @@ pub(crate) struct EleIndex {
 pub(crate) struct Element {
     pub(crate) index: EleIndex,
     pub(crate) id: String,
-    pub(crate) render_fn: Option<Box<dyn FnOnce(&mut Frame, Rect)>>,
+    pub(crate) buf: Option<ratatui::buffer::Buffer>,
     pub(crate) area: Rect,
     pub(crate) opts: Option<EleOptions>,
 }
@@ -74,11 +77,38 @@ impl Element {
         let mut ele = Self {
             index: Default::default(),
             id: id.to_string(),
-            render_fn: None,
+            buf: None,
             area,
             opts,
         };
         ele.index.level = level;
+        return ele;
+    }
+
+    pub(crate) fn plain<W: Widget>(self, w: W, clear: bool) -> Self {
+        let mut buf = ratatui::buffer::Buffer::empty(self.area);
+        if clear {
+            ratatui::widgets::Clear.render(self.area, &mut buf);
+        }
+        w.render(self.area, &mut buf);
+
+        let mut ele = self;
+        ele.buf = Some(buf);
+        return ele;
+    }
+
+    pub(crate) fn stateful<W: StatefulWidget>(self, w: W, s: &mut W::State, clear: bool) -> Self
+    where
+        <W as StatefulWidget>::State: Sized,
+    {
+        let mut buf = ratatui::buffer::Buffer::empty(self.area);
+        if clear {
+            ratatui::widgets::Clear.render(self.area, &mut buf);
+        }
+        w.render(self.area, &mut buf, s);
+
+        let mut ele = self;
+        ele.buf = Some(buf);
         return ele;
     }
 }

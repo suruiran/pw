@@ -2,11 +2,7 @@ use bitflags::bitflags;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 use ratatui::layout::{Position, Size};
 
-use crate::tui::{
-    app::TUIApp,
-    element::Element,
-    layers::{EleLevel, UILayers, UILayersRef},
-};
+use crate::tui::{app::TUIApp, element::Element};
 
 bitflags! {
     #[derive(Debug, Default)]
@@ -34,42 +30,44 @@ pub(crate) enum EvtReturn {
 }
 
 impl TUIApp {
-    fn do_scroll(&self, action: ScrollAction) {
-        let mut scrollview = self.scrollview.borrow_mut();
-        if scrollview.is_none() {
-            return;
-        }
-        let scrollview = scrollview.as_mut().unwrap();
-        let scrollview_state = &mut scrollview.state;
-
-        if action.contains(ScrollAction::ToTop) {
-            scrollview_state.scroll_to_top();
-            return;
-        }
-
-        if action.contains(ScrollAction::ToBottom) {
-            scrollview_state.scroll_to_bottom();
-            return;
-        }
-
-        if action.contains(ScrollAction::Up) {
-            if action.contains(ScrollAction::ByPage) {
-                scrollview_state.scroll_page_up();
+    fn do_scroll(&mut self, action: ScrollAction) {
+        let ctx = &mut self.ctx;
+        ctx.with_scrollview_mut(|sv| {
+            if sv.is_none() {
                 return;
             }
-            scrollview_state.scroll_up();
-            return;
-        }
-        if action.contains(ScrollAction::ByPage) {
-            scrollview_state.scroll_page_down();
-            return;
-        }
-        scrollview_state.scroll_down();
+            let scrollview = sv.as_mut().unwrap();
+            let scrollview_state = &mut scrollview.state;
+
+            if action.contains(ScrollAction::ToTop) {
+                scrollview_state.scroll_to_top();
+                return;
+            }
+
+            if action.contains(ScrollAction::ToBottom) {
+                scrollview_state.scroll_to_bottom();
+                return;
+            }
+
+            if action.contains(ScrollAction::Up) {
+                if action.contains(ScrollAction::ByPage) {
+                    scrollview_state.scroll_page_up();
+                    return;
+                }
+                scrollview_state.scroll_up();
+                return;
+            }
+            if action.contains(ScrollAction::ByPage) {
+                scrollview_state.scroll_page_down();
+                return;
+            }
+            scrollview_state.scroll_down();
+        });
     }
 
     fn do_change_focus(&self, action: ChangeFocusAction) {}
 
-    fn on_key_evt(&self, evt: KeyEvent, vpsize: Size) -> EvtReturn {
+    fn on_key_evt(&mut self, evt: KeyEvent, vpsize: Size) -> EvtReturn {
         if evt.is_release() {
             return EvtReturn::Ignore;
         }
@@ -139,16 +137,10 @@ impl TUIApp {
     }
 
     pub(crate) fn with_focusable<R>(&self, vpsize: Size, f: impl FnOnce(Vec<&Element>) -> R) -> R {
-        {
-            let mut layers = self.layers.borrow_mut();
-            layers.adjust_base_layer(self.scrollview.clone());
-        }
-        let layers = self.layers.borrow();
-        let eles = layers.all_focusable(vpsize);
-        return f(eles);
+        return self.ctx.with_focusables(vpsize, f);
     }
 
-    fn on_mouse_evt(&self, evt: MouseEvent, vpsize: Size) -> EvtReturn {
+    fn on_mouse_evt(&mut self, evt: MouseEvent, vpsize: Size) -> EvtReturn {
         match evt.kind {
             crossterm::event::MouseEventKind::Down(btn) => {
                 match btn {
@@ -194,7 +186,7 @@ impl TUIApp {
         }
     }
 
-    pub(crate) fn react(&self, evt: Event, vpsize: Size) -> EvtReturn {
+    pub(crate) fn react(&mut self, evt: Event, vpsize: Size) -> EvtReturn {
         match evt {
             Event::Mouse(evt) => {
                 return self.on_mouse_evt(evt, vpsize);
