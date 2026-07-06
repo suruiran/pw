@@ -4,12 +4,12 @@ use ratatui::layout::{Layout, Rect, Size};
 use tui_scrollview::ScrollView;
 
 use crate::tui::{
-    app::{ScrollViewInfo, UIApp, UIState, get_current_schema},
+    app::{ScrollViewInfo, TUIApp, UIState, get_current_schema},
     consts::uiconsts,
     layers::{EleLevel, UILayersRef},
 };
 
-impl UIApp {
+impl TUIApp {
     pub(crate) fn render_content(&mut self, container: Rect, uistate: Rc<UIState>) {
         let container = container.inner(uiconsts::MARGIN);
 
@@ -96,23 +96,5 @@ impl UIApp {
             container,
             None,
         );
-    }
-}
-
-#[derive(Default)]
-pub(crate) struct RenderCtx {
-    lazys: Vec<Box<dyn FnOnce(UILayersRef) + 'static>>,
-}
-
-impl RenderCtx {
-    pub(crate) fn push<F: FnOnce(UILayersRef) + 'static>(&mut self, f: F) -> &mut Self {
-        self.lazys.push(Box::new(f));
-        return self;
-    }
-
-    pub(crate) fn drain(&mut self, eles: UILayersRef) {
-        for f in std::mem::take(&mut self.lazys) {
-            f(eles.clone());
-        }
     }
 }

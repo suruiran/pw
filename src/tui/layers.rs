@@ -7,10 +7,10 @@ use ratatui::{
 
 use crate::tui::{
     app::ScrollViewInfoRef,
-    eleinfo::{EleIndex, Element},
+    element::{EleIndex, Element},
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) enum EleLevel {
     Base,
     Floating,
@@ -28,6 +28,7 @@ pub(crate) struct UILayers {
     base: Vec<Element>,
     floating: Vec<Element>,
     notify: Vec<Element>,
+    adjusted: bool,
 }
 
 pub(crate) type UILayersRef = Rc<RefCell<UILayers>>;
@@ -37,19 +38,18 @@ impl UILayers {
         self.base.clear();
         self.floating.clear();
         self.notify.clear();
+        self.adjusted = false;
     }
 
-    pub(crate) fn push(&mut self, level: EleLevel, ele: Element) {
-        let eles = match level {
+    pub(crate) fn push(&mut self, ele: Element) {
+        let eles = match ele.index.level {
             EleLevel::Base => &mut self.base,
             EleLevel::Floating => &mut self.floating,
             EleLevel::Notify => &mut self.notify,
         };
 
         let mut ele = ele;
-        ele.index.level = level;
         ele.index.idx = eles.len();
-
         eles.push(ele);
     }
 
@@ -98,6 +98,12 @@ impl UILayers {
         if self.top_level() != EleLevel::Base {
             return;
         }
+
+        if self.adjusted {
+            return;
+        }
+        self.adjusted = true;
+
         let scrollviewinfo = scrollview.borrow();
         if scrollviewinfo.is_none() {
             return;
@@ -116,12 +122,12 @@ impl UILayers {
                 return;
             }
 
-            let x = ele.area.x as i32 + pos.x as i32;
+            let x = ele.area.x as i32 + pos.x as i32 - offset.x as i32;
             if x < 0 || x > u16::MAX as i32 {
                 ele.area.width = 0;
                 return;
             }
-            let y = ele.area.y as i32 - offset.y as i32;
+            let y = ele.area.y as i32 + pos.y as i32 - offset.y as i32;
             if y < 0 || y > u16::MAX as i32 {
                 ele.area.width = 0;
                 return;
@@ -140,5 +146,14 @@ impl UILayers {
             EleLevel::Floating => Self::to_refs(&self.floating, |e| true),
             EleLevel::Notify => Self::to_refs(&self.notify, |e| true),
         }
+    }
+
+    pub(crate) fn get<'a>(&'a self, idx: &EleIndex) -> Option<&'a Element> {
+        let eles = match idx.level {
+            EleLevel::Base => &self.base,
+            EleLevel::Floating => &self.floating,
+            EleLevel::Notify => &self.notify,
+        };
+        return eles.get(idx.idx);
     }
 }

@@ -1,9 +1,6 @@
 use std::fmt::Debug;
 
-use ratatui::{
-    Frame,
-    layout::{Rect, Size},
-};
+use ratatui::{Frame, layout::Rect};
 
 use crate::tui::layers::EleLevel;
 
@@ -28,6 +25,7 @@ pub(crate) struct EleOptions {
     pub(crate) in_scroll_view: bool,
     pub(crate) input_id: Option<String>,
     pub(crate) on_active: ActiveAction,
+    pub(crate) auto_focusable: bool,
 }
 
 impl EleOptions {
@@ -48,9 +46,15 @@ impl EleOptions {
         ele.on_active = action;
         return ele;
     }
+
+    pub(crate) fn auto_focusable(self) -> Self {
+        let mut ele = self;
+        ele.auto_focusable = true;
+        return ele;
+    }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub(crate) struct EleIndex {
     pub(crate) level: EleLevel,
     pub(crate) idx: usize,
@@ -63,6 +67,20 @@ pub(crate) struct Element {
     pub(crate) render_fn: Option<Box<dyn FnOnce(&mut Frame, Rect)>>,
     pub(crate) area: Rect,
     pub(crate) opts: Option<EleOptions>,
+}
+
+impl Element {
+    pub(crate) fn new(level: EleLevel, id: &str, area: Rect, opts: Option<EleOptions>) -> Self {
+        let mut ele = Self {
+            index: Default::default(),
+            id: id.to_string(),
+            render_fn: None,
+            area,
+            opts,
+        };
+        ele.index.level = level;
+        return ele;
+    }
 }
 
 impl Debug for Element {

@@ -3,8 +3,8 @@ use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 use ratatui::layout::{Position, Size};
 
 use crate::tui::{
-    app::UIApp,
-    eleinfo::Element,
+    app::TUIApp,
+    element::Element,
     layers::{EleLevel, UILayers, UILayersRef},
 };
 
@@ -33,7 +33,7 @@ pub(crate) enum EvtReturn {
     Exit,
 }
 
-impl UIApp {
+impl TUIApp {
     fn do_scroll(&self, action: ScrollAction) {
         let mut scrollview = self.scrollview.borrow_mut();
         if scrollview.is_none() {
@@ -138,7 +138,7 @@ impl UIApp {
         return eles.into_iter().filter(|e| e.area.contains(pos)).collect();
     }
 
-    fn with_focusable<R>(&self, vpsize: Size, f: impl FnOnce(Vec<&Element>) -> R) -> R {
+    pub(crate) fn with_focusable<R>(&self, vpsize: Size, f: impl FnOnce(Vec<&Element>) -> R) -> R {
         {
             let mut layers = self.layers.borrow_mut();
             layers.adjust_base_layer(self.scrollview.clone());

@@ -1,6 +1,5 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crossterm::event::Event;
 use ratatui::{
     DefaultTerminal, Frame,
     layout::{Layout, Rect, Size},
@@ -14,8 +13,8 @@ use crate::{
     repl::repl,
     schema::{self, Argument},
     tui::{
-        content::RenderCtx,
-        eleinfo::{EleIndex, EleOptions, Element},
+        ctx::RenderCtx,
+        element::{EleOptions, Element},
         layers::{EleLevel, UILayersRef},
     },
 };
@@ -29,19 +28,41 @@ pub(crate) struct ScrollViewInfo {
 
 pub(crate) type ScrollViewInfoRef = Rc<RefCell<Option<ScrollViewInfo>>>;
 
-pub(crate) struct UIApp {
+pub(crate) struct TUIApp {
     pub(crate) cmd: Rc<schema::Command>,
     pub(crate) model_state: Rc<RefCell<ModelState>>,
     pub(crate) theme: EntryThemeRef,
-
-    pub(crate) focused: Option<(i32, usize)>,
-
     pub(crate) mouse_enabled: bool,
 
     pub(crate) renderctx: Rc<RefCell<RenderCtx>>,
     pub(crate) layers: UILayersRef,
     pub(crate) scrollview: ScrollViewInfoRef,
+
     pub(crate) prev_path: Option<Vec<String>>,
+}
+
+impl TUIApp {
+    fn new(cmd: schema::Command) -> Self {
+        let app = Self {
+            cmd: Rc::new(cmd),
+            model_state: Default::default(),
+            mouse_enabled: crossterm::execute!(
+                std::io::stdout(),
+                crossterm::event::EnableMouseCapture
+            )
+            .is_ok(),
+            renderctx: Default::default(),
+            layers: Default::default(),
+            scrollview: Default::default(),
+            prev_path: None,
+            theme: Default::default(),
+        };
+        {
+            let mut ctx = app.renderctx.borrow_mut();
+            ctx.layers = Some(app.layers.clone());
+        }
+        return app;
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -50,7 +71,7 @@ pub(crate) struct UIState {
     pub(crate) arg: Option<String>,
 }
 
-impl UIApp {
+impl TUIApp {
     pub(crate) fn current_ui_state(&mut self) -> UIState {
         let mut current_cmd: &schema::Command = &self.cmd;
         let mut path: Vec<String> = vec![current_cmd.exe.to_string()];
@@ -144,7 +165,7 @@ pub(crate) fn get_current_schema<'a>(
 }
 
 // render
-impl UIApp {
+impl TUIApp {
     fn run(&mut self, terminal: &mut DefaultTerminal) -> std::io::Result<()> {
         let mut changed = true;
         loop {
@@ -154,6 +175,11 @@ impl UIApp {
                 let state = Rc::new(self.current_ui_state());
                 self.prev_path = Some(state.path.clone());
                 terminal.draw(|frame| self.render(frame, state.clone()))?;
+
+                let mut ctx = self.renderctx.borrow_mut();
+                if ctx.auto_focused(self, terminal.size()?) {
+                    continue;
+                }
             }
 
             match self.react(crossterm::event::read()?, terminal.size()?) {
@@ -235,14 +261,9 @@ impl UIApp {
         area: Rect,
         opts: Option<EleOptions>,
     ) {
-        let eletemp = Element {
-            index: EleIndex::default(),
-            id,
-            render_fn: Some(render),
-            area,
-            opts,
-        };
-        on_ele(self.layers.clone(), level, eletemp);
+        let mut eletemp = Element::new(level, &id, area, opts);
+        eletemp.render_fn = Some(render);
+        on_ele(self.layers.clone(), eletemp);
     }
 
     pub fn on_plain_ele<W: Widget + 'static>(
@@ -265,7 +286,7 @@ impl UIApp {
     }
 }
 
-impl Drop for UIApp {
+impl Drop for TUIApp {
     fn drop(&mut self) {
         ratatui::restore();
         if self.mouse_enabled {
@@ -298,18 +319,7 @@ pub fn run(cmd: schema::Command) -> Result<Vec<String>, String> {
         }
     }
 
-    let mut app = UIApp {
-        cmd: Rc::new(cmd),
-        model_state: Default::default(),
-        mouse_enabled: crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)
-            .is_ok(),
-        renderctx: Default::default(),
-        layers: Default::default(),
-        scrollview: Default::default(),
-        prev_path: None,
-        theme: Default::default(),
-        focused: Default::default(),
-    };
+    let mut app = TUIApp::new(cmd);
     match app.run(&mut terminal) {
         Ok(_) => {}
         Err(e) => {
@@ -319,24 +329,7 @@ pub fn run(cmd: schema::Command) -> Result<Vec<String>, String> {
     return Ok(vec![]);
 }
 
-pub(crate) fn on_event_ele(
-    eles: UILayersRef,
-    level: EleLevel,
-    id: String,
-    area: Rect,
-    opts: Option<EleOptions>,
-) {
-    let eletemp = Element {
-        id,
-        render_fn: None,
-        area,
-        opts,
-        index: EleIndex::default(),
-    };
-    on_ele(eles, level, eletemp);
-}
-
-fn on_ele(eles: UILayersRef, level: EleLevel, ele: Element) {
+fn on_ele(eles: UILayersRef, ele: Element) {
     let mut eles = eles.borrow_mut();
-    eles.push(level, ele);
+    eles.push(ele);
 }

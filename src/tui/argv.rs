@@ -1,5 +1,5 @@
 use ratatui::{
-    layout::{Layout, Margin, Rect},
+    layout::{Layout, Rect},
     style::Style,
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
@@ -12,10 +12,9 @@ use crate::{
     model_state::{ModelState, get_argvs},
     schema::Argument,
     tui::{
-        app::on_event_ele,
         consts::uiconsts,
-        content::RenderCtx,
-        eleinfo::{ActiveAction, EleOptions},
+        ctx::RenderCtx,
+        element::{ActiveAction, EleOptions, Element},
         layers::EleLevel,
     },
 };
@@ -148,28 +147,22 @@ impl Argument {
         if let Some(idx) = add_value_idx {
             let area = layouts[idx];
             let name = self.name.clone();
-            ctx.push(move |eles| {
-                on_event_ele(
-                    eles,
-                    EleLevel::Base,
-                    format!("{id_prefix}/add_val#{}", name),
-                    area,
-                    Some(EleOptions::new(true).set_action(ActiveAction::AddArgv)),
-                );
-            });
+            ctx.push(Element::new(
+                EleLevel::Base,
+                format!("{id_prefix}/add_val#{}", name).as_str(),
+                area,
+                Some(EleOptions::new(true).set_action(ActiveAction::AddArgv)),
+            ));
         }
         if let Some(idx) = desc_indicator_idx {
             let area = layouts[idx];
             let name = self.name.clone();
-            ctx.push(move |eles| {
-                on_event_ele(
-                    eles,
-                    EleLevel::Base,
-                    format!("{id_prefix}/desc_indicator#{}", &name),
-                    area,
-                    Some(EleOptions::new(true).set_action(ActiveAction::ShowArguDesc(name))),
-                );
-            });
+            ctx.push(Element::new(
+                EleLevel::Base,
+                format!("{id_prefix}/desc_indicator#{}", &name).as_str(),
+                area,
+                Some(EleOptions::new(true).set_action(ActiveAction::ShowArguDesc(name))),
+            ));
         }
     }
 
@@ -195,15 +188,16 @@ impl Argument {
             area,
         );
         let name = self.name.clone();
-        ctx.push(move |eles| {
-            on_event_ele(
-                eles,
-                EleLevel::Base,
-                format!("argu/input#{}", name),
-                area,
-                Some(EleOptions::new(true).set_input_id(&input_id)),
-            )
-        });
+        ctx.push(Element::new(
+            EleLevel::Base,
+            format!("argu/input#{}", name).as_str(),
+            area,
+            Some(
+                EleOptions::new(true)
+                    .set_input_id(&input_id)
+                    .auto_focusable(),
+            ),
+        ));
     }
 
     pub(crate) fn render(
