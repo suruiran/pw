@@ -56,7 +56,17 @@ impl EntryTheme {
         return Style::new();
     }
 
-    pub(crate) fn argu_input_border_style(&self, actived: bool) -> Style {
+    pub(crate) fn argu_input_border_style(&self, focused: bool) -> Style {
+        if focused {
+            return Style::new().fg(ratatui::style::Color::Green);
+        }
+        return Style::new();
+    }
+
+    pub(crate) fn argu_input_style(&self, focused: bool) -> Style {
+        if focused {
+            return Style::new().fg(ratatui::style::Color::Blue);
+        }
         return Style::new();
     }
 }

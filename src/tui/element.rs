@@ -127,6 +127,9 @@ impl Debug for Element {
 impl Element {
     pub(crate) fn responsive(&self) -> bool {
         if let Some(opts) = self.opts.as_ref() {
+            if opts.input_id.is_some() {
+                return true;
+            }
             match opts.on_active {
                 ActiveAction::Nothing => {
                     return false;

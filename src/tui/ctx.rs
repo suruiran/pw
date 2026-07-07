@@ -54,7 +54,6 @@ impl RenderCtx {
         }
         match idx {
             Some(idx) => {
-                tracing::info!("{:?}", &idx);
                 self.focused = Some(idx);
                 return true;
             }
@@ -64,16 +63,24 @@ impl RenderCtx {
         }
     }
 
-    pub(crate) fn with_current_focused_ele<R>(
-        &self,
-        f: impl FnOnce(Option<&Element>) -> R,
-    ) -> Option<R> {
+    fn with_current_focused_ele<R>(&self, f: impl FnOnce(&Element) -> R) -> Option<R> {
         match self.focused.as_ref() {
             Some(idx) => {
                 let ele = self.layers.get(idx);
-                return Some(f(ele));
+                match ele {
+                    Some(ele) => Some(f(ele)),
+                    None => None,
+                }
             }
             None => None,
         }
+    }
+
+    pub(crate) fn is_focused(&self, id: &str) -> bool {
+        return self
+            .with_current_focused_ele(|ele| {
+                return ele.id == id;
+            })
+            .unwrap_or(false);
     }
 }

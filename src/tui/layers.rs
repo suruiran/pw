@@ -139,10 +139,12 @@ impl UILayers {
         match self.top_level() {
             EleLevel::Base => {
                 let viewport = Rect::from(vpsize);
-                return Self::to_refs(&self.base, move |e| viewport.intersects(e.area));
+                return Self::to_refs(&self.base, move |e| {
+                    return viewport.intersects(e.area);
+                });
             }
-            EleLevel::Floating => Self::to_refs(&self.floating, |e| true),
-            EleLevel::Notify => Self::to_refs(&self.notify, |e| true),
+            EleLevel::Floating => Self::to_refs(&self.floating, |_| true),
+            EleLevel::Notify => Self::to_refs(&self.notify, |_| true),
         }
     }
 

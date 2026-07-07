@@ -176,25 +176,27 @@ impl Argument {
         theme: EntryThemeRef,
         path: &[String],
     ) {
-        let input_id = Argument::mk_input_id(&self.name, path, idx);
+        let eleid = format!("argu/input#{}", &self.name);
+        let focused = ctx.is_focused(&eleid);
+        tracing::info!("{} {}", &eleid, focused);
+
         root.render_widget(
             Paragraph::new(val.as_ref().map_or("".to_string(), |v| v.to_string()))
                 .block(
                     Block::new()
                         .borders(Borders::BOTTOM)
-                        .border_style(theme.clone().argu_input_border_style(false)),
+                        .border_style(theme.argu_input_border_style(focused)),
                 )
-                .style(Style::default().bg(ratatui::style::Color::Black)),
+                .style(theme.argu_input_style(focused)),
             area,
         );
-        let name = self.name.clone();
         ctx.push(Element::new(
             EleLevel::Base,
-            format!("argu/input#{}", name).as_str(),
+            &eleid,
             area,
             Some(
                 EleOptions::new(true)
-                    .set_input_id(&input_id)
+                    .set_input_id(&Argument::mk_input_id(&self.name, path, idx))
                     .auto_focusable(),
             ),
         ));
