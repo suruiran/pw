@@ -6,4 +6,4 @@ Human-friendly interfaces for any CLI.
 
 # todos
 
-- []  A simple Python agent script for LLM interaction, with validation to ensure the generated JSON/TOML conforms to the expected format.
+- [ ]  A simple Python agent script for LLM interaction, with validation to ensure the generated JSON/TOML conforms to the expected format.

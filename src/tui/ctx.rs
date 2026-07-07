@@ -1,7 +1,7 @@
 use ratatui::{Frame, layout::Size};
 
 use crate::tui::{
-    app::{ScrollViewInfo, TUIApp},
+    app::ScrollViewInfo,
     element::{EleIndex, Element},
     layers::UILayers,
 };

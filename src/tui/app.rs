@@ -151,9 +151,9 @@ impl TUIApp {
             if changed {
                 self.ctx.clear();
 
-                let state = Rc::new(self.current_ui_state());
+                let state = self.current_ui_state();
+                terminal.draw(|frame| self.render(frame, &state))?;
                 self.prev_path = Some(state.path.clone());
-                terminal.draw(|frame| self.render(frame, state.clone()))?;
 
                 if self.ctx.auto_focused(terminal.size()?) {
                     continue;
@@ -176,7 +176,7 @@ impl TUIApp {
         }
     }
 
-    fn render(&mut self, frame: &mut Frame, uistate: Rc<UIState>) {
+    fn render(&mut self, frame: &mut Frame, uistate: &UIState) {
         let layout = Layout::default()
             .direction(ratatui::layout::Direction::Vertical)
             .constraints(vec![
@@ -185,13 +185,13 @@ impl TUIApp {
             ])
             .split(frame.area());
 
-        self.render_content(layout[0], uistate.clone());
-        self.render_footer(layout[1], uistate.clone());
+        self.render_content(layout[0], uistate);
+        self.render_footer(layout[1], uistate);
 
         self.ctx.render(frame);
     }
 
-    fn render_footer(&mut self, container: Rect, uistate: Rc<UIState>) {
+    fn render_footer(&mut self, container: Rect, uistate: &UIState) {
         let layout = Layout::default()
             .direction(ratatui::layout::Direction::Horizontal)
             .constraints(vec![
@@ -203,11 +203,11 @@ impl TUIApp {
             ])
             .split(container);
 
-        self.render_footer_path(layout[0], uistate.clone());
-        self.render_footer_btns(layout[2], uistate.clone());
+        self.render_footer_path(layout[0], uistate);
+        self.render_footer_btns(layout[2], uistate);
     }
 
-    fn render_footer_path(&mut self, container: Rect, uistate: Rc<UIState>) {
+    fn render_footer_path(&mut self, container: Rect, uistate: &UIState) {
         let mut constraints = vec![];
         for _ in 0..uistate.path.len() {
             constraints.push(ratatui::layout::Constraint::Fill(1));
@@ -229,7 +229,7 @@ impl TUIApp {
         }
     }
 
-    fn render_footer_btns(&mut self, container: Rect, uistate: Rc<UIState>) {}
+    fn render_footer_btns(&mut self, container: Rect, uistate: &UIState) {}
 }
 
 impl Drop for TUIApp {

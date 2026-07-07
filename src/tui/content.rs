@@ -11,7 +11,7 @@ use crate::tui::{
 };
 
 impl TUIApp {
-    pub(crate) fn render_content(&mut self, container: Rect, uistate: Rc<UIState>) {
+    pub(crate) fn render_content(&mut self, container: Rect, uistate: &UIState) {
         let container = container.inner(uiconsts::MARGIN);
         if let Some(prev_path) = self.prev_path.as_ref()
             && prev_path.join("/") != uistate.path.join("/")
